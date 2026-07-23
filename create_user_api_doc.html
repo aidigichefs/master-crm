@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create User API Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px;
+            background: #ffffff;
+        }
+
+        h1, h2, h3 {
+            color: #111827;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .muted {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f9fafb;
+        }
+
+        code, pre {
+            font-family: Consolas, Monaco, monospace;
+        }
+
+        pre {
+            background: #111827;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 10px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f3f4f6;
+        }
+
+        ul {
+            margin: 8px 0 0 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create User API Documentation</h1>
+    <p class="muted">Project: MasterCRM | Generated: July 23, 2026</p>
+
+    <div class="card">
+        <h2>Overview</h2>
+        <p>
+            <code>create_user.php</code> is a POST API used to create login users and map each user
+            to a specific tool account using <code>tool_id</code>.
+        </p>
+        <p>
+            This allows login-based segregation so each user is associated with one tool from the
+            <code>ai_tools</code> table.
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>Required Database Update</h2>
+        <pre>ALTER TABLE user_accounts
+ADD COLUMN tool_id INT(11) NULL AFTER role;
+
+ALTER TABLE user_accounts
+ADD INDEX idx_tool_id (tool_id);</pre>
+        <p>Tool IDs from the current <code>ai_tools</code> table:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tool Name</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>ABFRL</td></tr>
+                <tr><td>2</td><td>SocialMill</td></tr>
+                <tr><td>3</td><td>Sizewise</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Endpoint</h2>
+        <pre>POST /create_user.php</pre>
+    </div>
+
+    <div class="card">
+        <h2>Request Parameters</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>username</code></td>
+                    <td>Yes</td>
+                    <td>Login username or email.</td>
+                </tr>
+                <tr>
+                    <td><code>password</code></td>
+                    <td>Yes</td>
+                    <td>User password.</td>
+                </tr>
+                <tr>
+                    <td><code>role</code></td>
+                    <td>No</td>
+                    <td>Allowed values: <code>USER</code>, <code>ADMIN</code>. Default: <code>USER</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>tool_id</code></td>
+                    <td>Yes</td>
+                    <td>Must match an active tool ID from <code>ai_tools</code>.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Example Request</h2>
+        <pre>username=aman.m@digichefs.com
+password=aa3154de4e1e
+role=USER
+tool_id=3</pre>
+
+        <h3>cURL Example</h3>
+        <pre>curl -X POST https://yourdomain.com/create_user.php ^
+  -d "username=aman.m@digichefs.com" ^
+  -d "password=aa3154de4e1e" ^
+  -d "role=USER" ^
+  -d "tool_id=3"</pre>
+    </div>
+
+    <div class="card">
+        <h2>Success Response</h2>
+        <pre>{
+  "status": true,
+  "message": "User created successfully",
+  "user_id": 11,
+  "username": "aman.m@digichefs.com",
+  "role": "USER",
+  "tool_id": 3,
+  "tool_name": "Sizewise"
+}</pre>
+    </div>
+
+    <div class="card">
+        <h2>Error Responses</h2>
+        <h3>Missing Username or Password</h3>
+        <pre>{
+  "status": false,
+  "message": "Username and password are required"
+}</pre>
+
+        <h3>Invalid Role</h3>
+        <pre>{
+  "status": false,
+  "message": "Invalid role"
+}</pre>
+
+        <h3>Invalid or Inactive Tool</h3>
+        <pre>{
+  "status": false,
+  "message": "Valid active tool_id is required"
+}</pre>
+
+        <h3>Duplicate User</h3>
+        <pre>{
+  "status": false,
+  "message": "User already exists"
+}</pre>
+
+        <h3>Insert Failure</h3>
+        <pre>{
+  "status": false,
+  "message": "Failed to create user"
+}</pre>
+    </div>
+
+    <div class="card">
+        <h2>Usage Notes</h2>
+        <ul>
+            <li>Assign the correct <code>tool_id</code> when creating each user.</li>
+            <li>During login, read the user’s <code>tool_id</code> and use it to segregate access or data.</li>
+            <li>If you later need one user to access multiple tools, use a separate mapping table instead of a single <code>tool_id</code> column.</li>
+        </ul>
+    </div>
+</body>
+</html>

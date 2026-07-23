@@ -16,6 +16,7 @@ if ($conn->connect_error) {
 $username = trim($_POST['username'] ?? '');
 $password = trim($_POST['password'] ?? '');
 $role = trim($_POST['role'] ?? 'USER');
+$toolId = intval($_POST['tool_id'] ?? 0);
 
 if ($username === '' || $password === '') {
     echo json_encode([
@@ -34,6 +35,23 @@ if (!in_array($role, $allowedRoles, true)) {
     exit;
 }
 
+$toolCheckSql = "SELECT id, tool_name FROM ai_tools WHERE id = ? AND is_active = 1 LIMIT 1";
+$toolCheckStmt = $conn->prepare($toolCheckSql);
+$toolCheckStmt->bind_param("i", $toolId);
+$toolCheckStmt->execute();
+$toolCheckResult = $toolCheckStmt->get_result();
+$tool = $toolCheckResult->fetch_assoc();
+
+if (!$tool) {
+    echo json_encode([
+        "status" => false,
+        "message" => "Valid active tool_id is required"
+    ]);
+    $toolCheckStmt->close();
+    $conn->close();
+    exit;
+}
+
 $checkSql = "SELECT id FROM user_accounts WHERE username = ?";
 $checkStmt = $conn->prepare($checkSql);
 $checkStmt->bind_param("s", $username);
@@ -48,9 +66,9 @@ if ($checkResult->num_rows > 0) {
     exit;
 }
 
-$insertSql = "INSERT INTO user_accounts (username, password, role) VALUES (?, ?, ?)";
+$insertSql = "INSERT INTO user_accounts (username, password, role, tool_id) VALUES (?, ?, ?, ?)";
 $insertStmt = $conn->prepare($insertSql);
-$insertStmt->bind_param("sss", $username, $password, $role);
+$insertStmt->bind_param("sssi", $username, $password, $role, $toolId);
 
 if ($insertStmt->execute()) {
     echo json_encode([
@@ -58,7 +76,9 @@ if ($insertStmt->execute()) {
         "message" => "User created successfully",
         "user_id" => $insertStmt->insert_id,
         "username" => $username,
-        "role" => $role
+        "role" => $role,
+        "tool_id" => $toolId,
+        "tool_name" => $tool['tool_name']
     ]);
 } else {
     echo json_encode([
@@ -67,6 +87,7 @@ if ($insertStmt->execute()) {
     ]);
 }
 
+$toolCheckStmt->close();
 $checkStmt->close();
 $insertStmt->close();
 $conn->close();
