@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login API Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px;
+            background: #ffffff;
+        }
+
+        h1, h2, h3 {
+            color: #111827;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .muted {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f9fafb;
+        }
+
+        code, pre {
+            font-family: Consolas, Monaco, monospace;
+        }
+
+        pre {
+            background: #111827;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 10px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f3f4f6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Login API Documentation</h1>
+    <p class="muted">Project: MasterCRM | Generated: July 23, 2026</p>
+
+    <div class="card">
+        <h2>Overview</h2>
+        <p>
+            <code>login.php</code> is a POST API used to authenticate a user and return the mapped
+            tool information assigned through <code>tool_id</code>.
+        </p>
+        <p>
+            After successful login, the response includes the user identity, role, tool ID, and tool name
+            so you can segregate users based on the account/tool they belong to.
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>Required Database Structure</h2>
+        <pre>ALTER TABLE user_accounts
+ADD COLUMN tool_id INT(11) NULL AFTER role;
+
+ALTER TABLE user_accounts
+ADD INDEX idx_tool_id (tool_id);</pre>
+        <p>Tool IDs from the current <code>ai_tools</code> table:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tool Name</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>ABFRL</td></tr>
+                <tr><td>2</td><td>SocialMill</td></tr>
+                <tr><td>3</td><td>Sizewise</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Endpoint</h2>
+        <pre>POST /login.php</pre>
+    </div>
+
+    <div class="card">
+        <h2>Request Parameters</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>username</code></td>
+                    <td>Yes</td>
+                    <td>User login username or email.</td>
+                </tr>
+                <tr>
+                    <td><code>password</code></td>
+                    <td>Yes</td>
+                    <td>User password.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Example Request</h2>
+        <pre>username=sajan
+password=9b7468caa26c</pre>
+
+        <h3>cURL Example</h3>
+        <pre>curl -X POST https://yourdomain.com/login.php ^
+  -d "username=sajan" ^
+  -d "password=9b7468caa26c"</pre>
+    </div>
+
+    <div class="card">
+        <h2>Success Response</h2>
+        <pre>{
+  "status": true,
+  "message": "Login Successful",
+  "user_id": 4,
+  "username": "sajan",
+  "role": "USER",
+  "tool_id": 1,
+  "tool_name": "ABFRL"
+}</pre>
+    </div>
+
+    <div class="card">
+        <h2>Error Responses</h2>
+        <h3>Missing Username or Password</h3>
+        <pre>{
+  "status": false,
+  "message": "Username and password are required"
+}</pre>
+
+        <h3>Invalid Password</h3>
+        <pre>{
+  "status": false,
+  "message": "Invalid Password"
+}</pre>
+
+        <h3>User Not Found</h3>
+        <pre>{
+  "status": false,
+  "message": "User Not Found"
+}</pre>
+
+        <h3>Database Connection Failed</h3>
+        <pre>{
+  "status": false,
+  "message": "Database connection failed"
+}</pre>
+    </div>
+
+    <div class="card">
+        <h2>Response Fields After Login</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td><code>user_id</code></td><td>Primary key from <code>user_accounts</code>.</td></tr>
+                <tr><td><code>username</code></td><td>Logged-in username.</td></tr>
+                <tr><td><code>role</code></td><td>User role such as <code>USER</code> or <code>ADMIN</code>.</td></tr>
+                <tr><td><code>tool_id</code></td><td>Mapped tool/account ID from <code>user_accounts.tool_id</code>.</td></tr>
+                <tr><td><code>tool_name</code></td><td>Tool name from the <code>ai_tools</code> table.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Usage Notes</h2>
+        <p>
+            Use <code>tool_id</code> or <code>tool_name</code> from the login response in your apps and APIs
+            to restrict or segregate data for each account.
+        </p>
+    </div>
+</body>
+</html>

@@ -28,7 +28,19 @@ if (empty($username) || empty($password)) {
     exit;
 }
 
-$sql = "SELECT * FROM user_accounts WHERE username = ?";
+$sql = "
+    SELECT
+        ua.id,
+        ua.username,
+        ua.password,
+        ua.role,
+        ua.tool_id,
+        at.tool_name
+    FROM user_accounts ua
+    LEFT JOIN ai_tools at ON at.id = ua.tool_id
+    WHERE ua.username = ?
+    LIMIT 1
+";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $username);
 $stmt->execute();
@@ -46,7 +58,9 @@ if ($result->num_rows > 0) {
             "message" => "Login Successful",
             "user_id" => $user['id'],
             "username" => $user['username'],
-            "role" => $user['role']
+            "role" => $user['role'],
+            "tool_id" => $user['tool_id'],
+            "tool_name" => $user['tool_name']
         ]);
 
     } else {
