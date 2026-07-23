@@ -44,9 +44,21 @@ function userExists($conn, $username) {
     return $exists;
 }
 
+function getActiveTool($conn, $toolId) {
+    $sql = "SELECT id, tool_name FROM ai_tools WHERE id = ? AND is_active = 1 LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $toolId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $tool = $result->fetch_assoc();
+    $stmt->close();
+    return $tool;
+}
+
 if ($action === "create") {
     $password = trim($_POST['password'] ?? '');
     $role = trim($_POST['role'] ?? 'USER');
+    $toolId = intval($_POST['tool_id'] ?? 0);
 
     if ($password === '') {
         echo json_encode([
@@ -65,6 +77,15 @@ if ($action === "create") {
         exit;
     }
 
+    $tool = getActiveTool($conn, $toolId);
+    if (!$tool) {
+        echo json_encode([
+            "status" => false,
+            "message" => "Valid active tool_id is required"
+        ]);
+        exit;
+    }
+
     if (userExists($conn, $username)) {
         echo json_encode([
             "status" => false,
@@ -73,9 +94,9 @@ if ($action === "create") {
         exit;
     }
 
-    $sql = "INSERT INTO user_accounts (username, password, role) VALUES (?, ?, ?)";
+    $sql = "INSERT INTO user_accounts (username, password, role, tool_id) VALUES (?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sss", $username, $password, $role);
+    $stmt->bind_param("sssi", $username, $password, $role, $toolId);
 
     if ($stmt->execute()) {
         echo json_encode([
@@ -83,7 +104,9 @@ if ($action === "create") {
             "message" => "User created successfully",
             "user_id" => $stmt->insert_id,
             "username" => $username,
-            "role" => $role
+            "role" => $role,
+            "tool_id" => $toolId,
+            "tool_name" => $tool['tool_name']
         ]);
     } else {
         echo json_encode([
@@ -99,11 +122,13 @@ if ($action === "create") {
 
 if ($action === "update") {
     $newUsername = trim($_POST['new_username'] ?? '');
+    $newRole = trim($_POST['role'] ?? '');
+    $toolIdInput = $_POST['tool_id'] ?? null;
 
-    if ($newUsername === '') {
+    if ($newUsername === '' && $newRole === '' && $toolIdInput === null) {
         echo json_encode([
             "status" => false,
-            "message" => "New username is required"
+            "message" => "At least one field to update is required"
         ]);
         exit;
     }
@@ -116,7 +141,7 @@ if ($action === "update") {
         exit;
     }
 
-    if ($username !== $newUsername && userExists($conn, $newUsername)) {
+    if ($newUsername !== '' && $username !== $newUsername && userExists($conn, $newUsername)) {
         echo json_encode([
             "status" => false,
             "message" => "New username already exists"
@@ -124,15 +149,64 @@ if ($action === "update") {
         exit;
     }
 
-    $sql = "UPDATE user_accounts SET username = ? WHERE username = ?";
+    $fields = [];
+    $types = "";
+    $values = [];
+
+    if ($newUsername !== '') {
+        $fields[] = "username = ?";
+        $types .= "s";
+        $values[] = $newUsername;
+    }
+
+    if ($newRole !== '') {
+        $allowedRoles = ["USER", "ADMIN"];
+        if (!in_array($newRole, $allowedRoles, true)) {
+            echo json_encode([
+                "status" => false,
+                "message" => "Invalid role"
+            ]);
+            exit;
+        }
+
+        $fields[] = "role = ?";
+        $types .= "s";
+        $values[] = $newRole;
+    }
+
+    $tool = null;
+    if ($toolIdInput !== null && $toolIdInput !== '') {
+        $toolId = intval($toolIdInput);
+        $tool = getActiveTool($conn, $toolId);
+
+        if (!$tool) {
+            echo json_encode([
+                "status" => false,
+                "message" => "Valid active tool_id is required"
+            ]);
+            exit;
+        }
+
+        $fields[] = "tool_id = ?";
+        $types .= "i";
+        $values[] = $toolId;
+    }
+
+    $sql = "UPDATE user_accounts SET " . implode(", ", $fields) . " WHERE username = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ss", $newUsername, $username);
+    $types .= "s";
+    $values[] = $username;
+    $stmt->bind_param($types, ...$values);
 
     if ($stmt->execute()) {
+        $updatedUsername = $newUsername !== '' ? $newUsername : $username;
         echo json_encode([
             "status" => true,
             "message" => "User updated successfully",
-            "username" => $newUsername
+            "username" => $updatedUsername,
+            "role" => $newRole !== '' ? $newRole : null,
+            "tool_id" => ($toolIdInput !== null && $toolIdInput !== '') ? $toolId : null,
+            "tool_name" => $tool ? $tool['tool_name'] : null
         ]);
     } else {
         echo json_encode([
@@ -177,7 +251,17 @@ if ($action === "delete") {
     exit;
 }
 if ($action === "list") {
-    $sql = "SELECT id, username, role FROM user_accounts ORDER BY id DESC";
+    $sql = "
+        SELECT
+            ua.id,
+            ua.username,
+            ua.role,
+            ua.tool_id,
+            at.tool_name
+        FROM user_accounts ua
+        LEFT JOIN ai_tools at ON at.id = ua.tool_id
+        ORDER BY ua.id DESC
+    ";
     $result = $conn->query($sql);
 
     $users = [];
