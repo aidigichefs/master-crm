@@ -435,7 +435,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
             </div>
         </header>
 
-        <main class="space-y-7 px-6 py-7 lg:px-8" id="analytics">
+        <main class="space-y-6 overflow-x-hidden px-5 py-6 lg:px-7" id="analytics">
             <section class="grid gap-6 xl:grid-cols-4">
                 <div class="grid gap-6 md:grid-cols-2 xl:col-span-2">
                     <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
@@ -448,7 +448,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                             </div>
                         </div>
                         <div class="mt-6">
-                            <p class="heading-font text-5xl font-bold tracking-tight text-slate-900"><?= compact_number($summary['total_requests']) ?></p>
+                            <p class="heading-font text-4xl font-bold tracking-tight text-slate-900 xl:text-[2.75rem]"><?= compact_number($summary['total_requests']) ?></p>
                             <div class="mt-3 flex items-center gap-2 text-sm font-bold text-emerald-500">
                                 <span>↑ Live Log</span>
                                 <span class="text-slate-400">total requests</span>
@@ -466,7 +466,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                             </div>
                         </div>
                         <div class="mt-6">
-                            <p class="heading-font text-5xl font-bold tracking-tight text-slate-900"><?= compact_number($summary['total_tokens']) ?></p>
+                            <p class="heading-font text-4xl font-bold tracking-tight text-slate-900 xl:text-[2.75rem]"><?= compact_number($summary['total_tokens']) ?></p>
                             <div class="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold">
                                 <span class="rounded-lg bg-indigo-50 px-2 py-1 text-indigo-500">Avg: <?= number_format($avgTokens, 0) ?></span>
                                 <span class="text-slate-400">tokens/request</span>
@@ -484,7 +484,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                             </div>
                         </div>
                         <div class="mt-6">
-                            <p class="heading-font text-5xl font-bold tracking-tight text-slate-900"><?= compact_number($summary['total_images']) ?></p>
+                            <p class="heading-font text-4xl font-bold tracking-tight text-slate-900 xl:text-[2.75rem]"><?= compact_number($summary['total_images']) ?></p>
                             <div class="mt-3 text-sm font-bold text-slate-400">generated media items</div>
                         </div>
                     </article>
@@ -499,7 +499,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                             </div>
                         </div>
                         <div class="mt-6">
-                            <p class="heading-font text-5xl font-bold tracking-tight text-slate-900"><?= money($summary['total_cost']) ?></p>
+                            <p class="heading-font text-4xl font-bold tracking-tight text-slate-900 xl:text-[2.75rem]"><?= money($summary['total_cost']) ?></p>
                             <div class="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold">
                                 <span class="rounded-lg bg-emerald-50 px-2 py-1 text-emerald-600">Avg: <?= money($avgCost) ?></span>
                                 <span class="text-slate-400">per request</span>
@@ -511,13 +511,13 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                 <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium" id="systems">
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <h3 class="heading-font text-[1.7rem] font-bold text-slate-900">System Spend Share</h3>
-                            <p class="mt-2 text-lg text-slate-400">Spending share per custom AI integration</p>
+                            <h3 class="heading-font text-[1.15rem] font-bold text-slate-900 xl:text-[1.3rem]">System Spend Share</h3>
+                            <p class="mt-2 max-w-[220px] text-sm leading-6 text-slate-400">Spending share per custom AI integration</p>
                         </div>
                         <span class="rounded-xl bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-500">COST SPLIT</span>
                     </div>
                     <div class="mt-6 flex items-center justify-center">
-                        <div class="h-[260px] w-[260px]">
+                        <div class="h-[190px] w-[190px] xl:h-[220px] xl:w-[220px]">
                             <canvas id="chart-tool-share"></canvas>
                         </div>
                     </div>
@@ -536,13 +536,13 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                 <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <h3 class="heading-font text-[1.7rem] font-bold text-slate-900">Token Volume Split</h3>
-                            <p class="mt-2 text-lg text-slate-400">Proportion of input vs output tokens</p>
+                            <h3 class="heading-font text-[1.15rem] font-bold text-slate-900 xl:text-[1.3rem]">Token Volume Split</h3>
+                            <p class="mt-2 max-w-[220px] text-sm leading-6 text-slate-400">Proportion of input vs output tokens</p>
                         </div>
                         <span class="rounded-xl bg-violet-50 px-3 py-1 text-sm font-bold text-violet-500">VOLUME</span>
                     </div>
                     <div class="mt-6 flex items-center justify-center">
-                        <div class="h-[260px] w-[260px]">
+                        <div class="h-[190px] w-[190px] xl:h-[220px] xl:w-[220px]">
                             <canvas id="chart-token-share"></canvas>
                         </div>
                     </div>
@@ -576,7 +576,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <p class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Input Spend</p>
-                                <p class="mt-4 heading-font text-5xl font-bold text-slate-900"><?= money($summary['input_cost']) ?></p>
+                                <p class="mt-4 heading-font text-4xl font-bold text-slate-900"><?= money($summary['input_cost']) ?></p>
                                 <p class="mt-2 text-lg text-slate-400">Input token expense</p>
                             </div>
                             <div class="flex h-16 w-16 items-center justify-center rounded-full border-4 border-indigo-100 text-base font-extrabold text-indigo-500">
@@ -589,7 +589,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <p class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Output Spend</p>
-                                <p class="mt-4 heading-font text-5xl font-bold text-slate-900"><?= money($summary['output_cost']) ?></p>
+                                <p class="mt-4 heading-font text-4xl font-bold text-slate-900"><?= money($summary['output_cost']) ?></p>
                                 <p class="mt-2 text-lg text-slate-400">Output + media expense</p>
                             </div>
                             <div class="flex h-16 w-16 items-center justify-center rounded-full border-4 border-emerald-100 text-base font-extrabold text-emerald-500">
@@ -709,7 +709,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                 </article>
             </section>
 
-            <section class="grid gap-6 xl:grid-cols-[0.42fr_0.58fr]" id="directory">
+            <section class="grid gap-6 xl:grid-cols-1 2xl:grid-cols-[0.38fr_0.62fr]" id="directory">
                 <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
                     <div class="border-b border-slate-100 pb-5">
                         <h3 class="heading-font text-[1.45rem] font-bold text-slate-900">User Management</h3>
@@ -728,7 +728,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                                     Password
                                     <input type="text" name="password" required class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300" placeholder="Enter password">
                                 </label>
-                                <div class="grid gap-4 sm:grid-cols-2">
+                                <div class="grid gap-4">
                                     <label class="block text-sm font-bold text-slate-500">
                                         Role
                                         <select name="role" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300">
@@ -781,7 +781,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                         Usage is shown from the mapped system totals because logs are stored by <code>tool_name</code>, not by <code>user_id</code>.
                     </div>
                     <div class="nice-scroll overflow-x-auto">
-                        <table class="mt-4 w-full min-w-[980px] text-left text-[13px]">
+                        <table class="mt-4 w-full min-w-[860px] text-left text-[12px]">
                             <thead>
                                 <tr class="border-b border-slate-100 text-[11px] uppercase tracking-[0.16em] text-slate-400">
                                     <th class="py-3 font-bold">User</th>
@@ -791,24 +791,24 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                                     <th class="py-3 text-right font-bold">Uses</th>
                                     <th class="py-3 text-right font-bold">Tokens</th>
                                     <th class="py-3 text-right font-bold">Spend</th>
-                                    <th class="py-3 font-bold">Last Activity</th>
+                                    <th class="py-3 font-bold">Last Seen</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 <?php foreach ($users as $user): ?>
                                     <tr class="hover:bg-slate-50/60">
                                         <td class="py-3.5">
-                                            <div class="text-sm font-bold text-slate-900"><?= h($user['username']) ?></div>
+                                        <div class="text-[13px] font-bold text-slate-900"><?= h($user['username']) ?></div>
                                             <div class="text-[11px] text-slate-400">ID #<?= h($user['id']) ?></div>
                                         </td>
                                         <td class="py-3.5">
-                                            <code class="rounded-xl bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-700"><?= h($user['password']) ?></code>
+                                            <code class="rounded-xl bg-slate-100 px-2 py-1.5 text-[10px] font-bold text-slate-700"><?= h($user['password']) ?></code>
                                         </td>
                                         <td class="py-3.5">
                                             <span class="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-white"><?= h($user['role']) ?></span>
                                         </td>
                                         <td class="py-3.5">
-                                            <div class="text-sm font-bold text-slate-900"><?= h($user['tool_name'] ?: 'Unassigned') ?></div>
+                                            <div class="text-[13px] font-bold text-slate-900"><?= h($user['tool_name'] ?: 'Unassigned') ?></div>
                                             <div class="text-[11px] text-slate-400">tool_id: <?= h($user['tool_id'] ?: '-') ?></div>
                                         </td>
                                         <td class="py-3.5 text-right font-semibold text-slate-700"><?= number_format((int) $user['system_request_count']) ?></td>
