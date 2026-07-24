@@ -709,66 +709,68 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                 </article>
             </section>
 
-            <section class="grid gap-6 xl:grid-cols-1 2xl:grid-cols-[0.38fr_0.62fr]" id="directory">
-                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
-                    <div class="border-b border-slate-100 pb-5">
+            <section class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium" id="user-management">
+                <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                    <div>
                         <h3 class="heading-font text-[1.45rem] font-bold text-slate-900">User Management</h3>
-                        <p class="mt-1 text-sm text-slate-400">Add or remove both USER and ADMIN accounts directly from this panel.</p>
+                        <p class="mt-1 text-sm text-slate-400">Add or remove both USER and ADMIN accounts in a separate clean admin section.</p>
                     </div>
+                </div>
 
-                    <div class="mt-6 space-y-6">
-                        <div class="rounded-3xl bg-slate-50 p-5">
-                            <h4 class="text-base font-extrabold text-slate-900">Create Account</h4>
-                            <form action="create_user.php" method="post" class="mt-4 space-y-4">
-                                <label class="block text-sm font-bold text-slate-500">
-                                    Username
-                                    <input type="text" name="username" required class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300" placeholder="name@digichefs.com">
-                                </label>
-                                <label class="block text-sm font-bold text-slate-500">
-                                    Password
-                                    <input type="text" name="password" required class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300" placeholder="Enter password">
-                                </label>
-                                <div class="grid gap-4">
-                                    <label class="block text-sm font-bold text-slate-500">
-                                        Role
-                                        <select name="role" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300">
-                                            <option value="USER">USER</option>
-                                            <option value="ADMIN">ADMIN</option>
-                                        </select>
-                                    </label>
-                                    <label class="block text-sm font-bold text-slate-500">
-                                        Tool
-                                        <select name="tool_id" required class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300">
-                                            <option value="">Select tool</option>
-                                            <?php foreach ($tools as $toolOption): ?>
-                                                <option value="<?= h($toolOption['id']) ?>" <?= $selectedToolId === (int) $toolOption['id'] ? 'selected' : '' ?>><?= h($toolOption['tool_name']) ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </label>
-                                </div>
+                <div class="mt-6 grid gap-6 xl:grid-cols-2">
+                    <article class="rounded-3xl bg-slate-50 p-6">
+                        <h4 class="text-base font-extrabold text-slate-900">Create Account</h4>
+                        <form action="create_user.php" method="post" class="mt-5 grid gap-4 md:grid-cols-2">
+                            <label class="block text-sm font-bold text-slate-500 md:col-span-2">
+                                Username
+                                <input type="text" name="username" required class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300" placeholder="name@digichefs.com">
+                            </label>
+                            <label class="block text-sm font-bold text-slate-500 md:col-span-2">
+                                Password
+                                <input type="text" name="password" required class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300" placeholder="Enter password">
+                            </label>
+                            <label class="block text-sm font-bold text-slate-500">
+                                Role
+                                <select name="role" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300">
+                                    <option value="USER">USER</option>
+                                    <option value="ADMIN">ADMIN</option>
+                                </select>
+                            </label>
+                            <label class="block text-sm font-bold text-slate-500">
+                                Tool
+                                <select name="tool_id" required class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300">
+                                    <option value="">Select tool</option>
+                                    <?php foreach ($tools as $toolOption): ?>
+                                        <option value="<?= h($toolOption['id']) ?>" <?= $selectedToolId === (int) $toolOption['id'] ? 'selected' : '' ?>><?= h($toolOption['tool_name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </label>
+                            <div class="md:col-span-2">
                                 <button type="submit" class="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition-soft hover:bg-indigo-700">
                                     Create User
                                 </button>
-                            </form>
-                        </div>
+                            </div>
+                        </form>
+                    </article>
 
-                        <div class="rounded-3xl bg-rose-50 p-5">
-                            <h4 class="text-base font-extrabold text-slate-900">Delete Account</h4>
-                            <form action="user_management.php" method="post" class="mt-4 space-y-4">
-                                <input type="hidden" name="action" value="delete">
-                                <label class="block text-sm font-bold text-slate-500">
-                                    Username
-                                    <input type="text" name="username" required class="mt-2 w-full rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-rose-300" placeholder="Exact username">
-                                </label>
-                                <button type="submit" class="w-full rounded-2xl bg-rose-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-rose-600/20 transition-soft hover:bg-rose-700">
-                                    Delete User
-                                </button>
-                            </form>
-                            <p class="mt-3 text-xs leading-6 text-rose-600">Deletion works for both USER and ADMIN roles. Use the exact username.</p>
-                        </div>
-                    </div>
-                </article>
+                    <article class="rounded-3xl bg-rose-50 p-6">
+                        <h4 class="text-base font-extrabold text-slate-900">Delete Account</h4>
+                        <form action="user_management.php" method="post" class="mt-5 space-y-4">
+                            <input type="hidden" name="action" value="delete">
+                            <label class="block text-sm font-bold text-slate-500">
+                                Username
+                                <input type="text" name="username" required class="mt-2 w-full rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-rose-300" placeholder="Exact username">
+                            </label>
+                            <button type="submit" class="w-full rounded-2xl bg-rose-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-rose-600/20 transition-soft hover:bg-rose-700">
+                                Delete User
+                            </button>
+                        </form>
+                        <p class="mt-3 text-xs leading-6 text-rose-600">Deletion works for both USER and ADMIN roles. Use the exact username.</p>
+                    </article>
+                </div>
+            </section>
 
+            <section class="grid gap-6 xl:grid-cols-1" id="directory">
                 <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
                     <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
                         <div>
