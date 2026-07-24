@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MasterCRM API Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.55;
+            color: #1f2937;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 28px;
+            background: #fff;
+        }
+
+        h1, h2, h3, h4 {
+            color: #111827;
+        }
+
+        h1 {
+            margin-bottom: 4px;
+        }
+
+        .muted {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f9fafb;
+        }
+
+        code, pre {
+            font-family: Consolas, Monaco, monospace;
+        }
+
+        pre {
+            background: #111827;
+            color: #f9fafb;
+            padding: 14px 16px;
+            border-radius: 10px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f3f4f6;
+        }
+
+        .endpoint {
+            color: #1d4ed8;
+            font-weight: bold;
+        }
+
+        .method {
+            display: inline-block;
+            min-width: 56px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            margin-right: 8px;
+        }
+
+        .get { background: #2563eb; }
+        .post { background: #059669; }
+        .internal { background: #6b7280; }
+
+        ul {
+            margin: 8px 0 0 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>MasterCRM API Documentation</h1>
+    <p class="muted">Base URL: <strong>https://digichefs.in/ai-usage-api</strong> | Generated: July 24, 2026</p>
+
+    <div class="card">
+        <h2>Overview</h2>
+        <p>
+            This project contains user APIs, AI usage logging APIs, reporting APIs, and one HTML dashboard.
+            The public base path for all endpoints is:
+        </p>
+        <pre>https://digichefs.in/ai-usage-api</pre>
+    </div>
+
+    <div class="card">
+        <h2>Authentication Rules</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Endpoint Group</th>
+                    <th>Auth Method</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>User APIs</td>
+                    <td>No API key in current code. Uses request parameters only.</td>
+                </tr>
+                <tr>
+                    <td>Usage APIs</td>
+                    <td>Require header <code>X-API-KEY: dgcf_ai_usage_2026_x7Kp92LmQ4vN8zR1tB6sY3wE</code></td>
+                </tr>
+                <tr>
+                    <td>Direct email trigger</td>
+                    <td>Requires query param <code>key</code> matching the same API secret</td>
+                </tr>
+                <tr>
+                    <td>Dashboard</td>
+                    <td>No auth in current code</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Database Notes</h2>
+        <p>The user-to-tool mapping depends on <code>user_accounts.tool_id</code>.</p>
+        <pre>ALTER TABLE user_accounts
+ADD COLUMN tool_id INT(11) NULL AFTER role;
+
+ALTER TABLE user_accounts
+ADD INDEX idx_tool_id (tool_id);</pre>
+
+        <p>Current tool IDs:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>tool_id</th>
+                    <th>tool_name</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>ABFRL</td></tr>
+                <tr><td>2</td><td>SocialMill</td></tr>
+                <tr><td>3</td><td>Sizewise</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Endpoints Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Method</th>
+                    <th>URL</th>
+                    <th>Purpose</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>login.php</td><td>POST</td><td>/login.php</td><td>User login with tool mapping</td></tr>
+                <tr><td>create_user.php</td><td>POST</td><td>/create_user.php</td><td>Create a user with role and tool assignment</td></tr>
+                <tr><td>user_management.php</td><td>POST</td><td>/user_management.php</td><td>Create, update, delete, and list users</td></tr>
+                <tr><td>log-usage.php</td><td>POST</td><td>/log-usage.php</td><td>Save AI usage data</td></tr>
+                <tr><td>get-summary.php</td><td>GET</td><td>/get-summary.php</td><td>Usage summary by date range</td></tr>
+                <tr><td>get-logs.php</td><td>GET</td><td>/get-logs.php</td><td>Paginated usage logs</td></tr>
+                <tr><td>send-today-report.php</td><td>POST / GET</td><td>/send-today-report.php</td><td>Send email report for today</td></tr>
+                <tr><td>dashboard.php</td><td>GET</td><td>/dashboard.php</td><td>HTML analytics dashboard</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>1. Login API</h2>
+        <p><span class="method post">POST</span><span class="endpoint">https://digichefs.in/ai-usage-api/login.php</span></p>
+        <p>Authenticates a user and returns role plus assigned tool mapping.</p>
+
+        <h3>Request Parameters</h3>
+        <table>
+            <thead><tr><th>Name</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>username</code></td><td>Yes</td><td>User login username or email</td></tr>
+                <tr><td><code>password</code></td><td>Yes</td><td>User password</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Example Request</h3>
+        <pre>curl -X POST https://digichefs.in/ai-usage-api/login.php ^
+  -d "username=sajan" ^
+  -d "password=9b7468caa26c"</pre>
+
+        <h3>Success Response</h3>
+        <pre>{
+  "status": true,
+  "message": "Login Successful",
+  "user_id": 4,
+  "username": "sajan",
+  "role": "USER",
+  "tool_id": 1,
+  "tool_name": "ABFRL"
+}</pre>
+
+        <h3>Error Responses</h3>
+        <pre>{
+  "status": false,
+  "message": "Username and password are required"
+}</pre>
+        <pre>{
+  "status": false,
+  "message": "Invalid Password"
+}</pre>
+        <pre>{
+  "status": false,
+  "message": "User Not Found"
+}</pre>
+    </div>
+
+    <div class="card">
+        <h2>2. Create User API</h2>
+        <p><span class="method post">POST</span><span class="endpoint">https://digichefs.in/ai-usage-api/create_user.php</span></p>
+        <p>Creates a new user and assigns the user to one tool via <code>tool_id</code>.</p>
+
+        <h3>Request Parameters</h3>
+        <table>
+            <thead><tr><th>Name</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>username</code></td><td>Yes</td><td>Login username or email</td></tr>
+                <tr><td><code>password</code></td><td>Yes</td><td>User password</td></tr>
+                <tr><td><code>role</code></td><td>No</td><td><code>USER</code> or <code>ADMIN</code>, default <code>USER</code></td></tr>
+                <tr><td><code>tool_id</code></td><td>Yes</td><td>Must exist in <code>ai_tools</code> and be active</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Example Request</h3>
+        <pre>curl -X POST https://digichefs.in/ai-usage-api/create_user.php ^
+  -d "username=aman.m@digichefs.com" ^
+  -d "password=aa3154de4e1e" ^
+  -d "role=USER" ^
+  -d "tool_id=3"</pre>
+
+        <h3>Success Response</h3>
+        <pre>{
+  "status": true,
+  "message": "User created successfully",
+  "user_id": 11,
+  "username": "aman.m@digichefs.com",
+  "role": "USER",
+  "tool_id": 3,
+  "tool_name": "Sizewise"
+}</pre>
+
+        <h3>Error Responses</h3>
+        <pre>{
+  "status": false,
+  "message": "Username and password are required"
+}</pre>
+        <pre>{
+  "status": false,
+  "message": "Invalid role"
+}</pre>
+        <pre>{
+  "status": false,
+  "message": "Valid active tool_id is required"
+}</pre>
+        <pre>{
+  "status": false,
+  "message": "User already exists"
+}</pre>
+    </div>
+
+    <div class="card">
+        <h2>3. User Management API</h2>
+        <p><span class="method post">POST</span><span class="endpoint">https://digichefs.in/ai-usage-api/user_management.php</span></p>
+        <p>Single endpoint for user create, update, delete, and list actions.</p>
+
+        <h3>Common Parameter</h3>
+        <table>
+            <thead><tr><th>Name</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>action</code></td><td>Yes</td><td><code>create</code>, <code>update</code>, <code>delete</code>, or <code>list</code></td></tr>
+                <tr><td><code>username</code></td><td>Required for create/update/delete</td><td>Target username</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Create User</h3>
+        <pre>curl -X POST https://digichefs.in/ai-usage-api/user_management.php ^
+  -d "action=create" ^
+  -d "username=vikas.t@digichefs.com" ^
+  -d "password=91d5a10784f0" ^
+  -d "role=USER" ^
+  -d "tool_id=3"</pre>
+
+        <h3>Update User</h3>
+        <p>At least one of <code>new_username</code>, <code>role</code>, or <code>tool_id</code> must be sent.</p>
+        <pre>curl -X POST https://digichefs.in/ai-usage-api/user_management.php ^
+  -d "action=update" ^
+  -d "username=vikas.t@digichefs.com" ^
+  -d "new_username=vikas.new@digichefs.com" ^
+  -d "role=ADMIN" ^
+  -d "tool_id=2"</pre>
+
+        <h3>Delete User</h3>
+        <pre>curl -X POST https://digichefs.in/ai-usage-api/user_management.php ^
+  -d "action=delete" ^
+  -d "username=vikas.new@digichefs.com"</pre>
+
+        <h3>List Users</h3>
+        <pre>curl -X POST https://digichefs.in/ai-usage-api/user_management.php ^
+  -d "action=list"</pre>
+
+        <h3>List Response Example</h3>
+        <pre>{
+  "status": true,
+  "users": [
+    {
+      "id": 8,
+      "username": "aman.m@digichefs.com",
+      "role": "USER",
+      "tool_id": 3,
+      "tool_name": "Sizewise"
+    }
+  ]
+}</pre>
+    </div>
+
+    <div class="card">
+        <h2>4. Log Usage API</h2>
+        <p><span class="method post">POST</span><span class="endpoint">https://digichefs.in/ai-usage-api/log-usage.php</span></p>
+        <p>Saves AI usage log entries into <code>ai_usage_logs</code>.</p>
+
+        <h3>Headers</h3>
+        <pre>X-API-KEY: dgcf_ai_usage_2026_x7Kp92LmQ4vN8zR1tB6sY3wE
+Content-Type: application/json</pre>
+
+        <h3>JSON Body</h3>
+        <table>
+            <thead><tr><th>Name</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>tool_name</code></td><td>Yes</td><td>Allowed: <code>ABFRL</code>, <code>SocialMill</code>, <code>Sizewise</code></td></tr>
+                <tr><td><code>input_tokens</code></td><td>No</td><td>Defaults to 0</td></tr>
+                <tr><td><code>output_tokens</code></td><td>No</td><td>Defaults to 0</td></tr>
+                <tr><td><code>total_tokens</code></td><td>No</td><td>If 0 or missing, computed as input + output</td></tr>
+                <tr><td><code>image_count</code></td><td>No</td><td>Defaults to 1</td></tr>
+                <tr><td><code>status</code></td><td>No</td><td>Defaults to <code>success</code></td></tr>
+                <tr><td><code>notes</code></td><td>No</td><td>Optional notes</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Example Request</h3>
+        <pre>curl -X POST https://digichefs.in/ai-usage-api/log-usage.php ^
+  -H "X-API-KEY: dgcf_ai_usage_2026_x7Kp92LmQ4vN8zR1tB6sY3wE" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"tool_name\":\"ABFRL\",\"input_tokens\":1200,\"output_tokens\":800,\"image_count\":1,\"status\":\"success\",\"notes\":\"Banner generated\"}"</pre>
+
+        <h3>Success Response</h3>
+        <pre>{
+  "success": true,
+  "message": "Usage saved successfully",
+  "data": {
+    "id": 101,
+    "tool_name": "ABFRL",
+    "model_name": "gemini-3-pro-image-preview",
+    "input_tokens": 1200,
+    "output_tokens": 800,
+    "total_tokens": 2000,
+    "input_cost": 0.00000000,
+    "output_cost": 0.00000000,
+    "total_cost": 0.00000000,
+    "currency": "USD"
+  }
+}</pre>
+
+        <h3>Error Responses</h3>
+        <pre>{
+  "success": false,
+  "message": "Unauthorized"
+}</pre>
+        <pre>{
+  "success": false,
+  "message": "Only POST allowed"
+}</pre>
+        <pre>{
+  "success": false,
+  "message": "Invalid tool name. Allowed: ABFRL, SocialMill, Sizewise"
+}</pre>
+        <pre>{
+  "success": false,
+  "message": "Model price not found"
+}</pre>
+    </div>
+
+    <div class="card">
+        <h2>5. Get Summary API</h2>
+        <p><span class="method get">GET</span><span class="endpoint">https://digichefs.in/ai-usage-api/get-summary.php</span></p>
+        <p>Returns aggregate usage summary and tool-wise breakdown for a date range.</p>
+
+        <h3>Headers</h3>
+        <pre>X-API-KEY: dgcf_ai_usage_2026_x7Kp92LmQ4vN8zR1tB6sY3wE</pre>
+
+        <h3>Query Parameters</h3>
+        <table>
+            <thead><tr><th>Name</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>from</code></td><td>No</td><td>Start date, default first day of current month</td></tr>
+                <tr><td><code>to</code></td><td>No</td><td>End date, default today</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Example Request</h3>
+        <pre>curl "https://digichefs.in/ai-usage-api/get-summary.php?from=2026-07-01&to=2026-07-24" ^
+  -H "X-API-KEY: dgcf_ai_usage_2026_x7Kp92LmQ4vN8zR1tB6sY3wE"</pre>
+    </div>
+
+    <div class="card">
+        <h2>6. Get Logs API</h2>
+        <p><span class="method get">GET</span><span class="endpoint">https://digichefs.in/ai-usage-api/get-logs.php</span></p>
+        <p>Returns paginated raw usage logs, optionally filtered by tool name.</p>
+
+        <h3>Headers</h3>
+        <pre>X-API-KEY: dgcf_ai_usage_2026_x7Kp92LmQ4vN8zR1tB6sY3wE</pre>
+
+        <h3>Query Parameters</h3>
+        <table>
+            <thead><tr><th>Name</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>page</code></td><td>No</td><td>Default 1</td></tr>
+                <tr><td><code>limit</code></td><td>No</td><td>Default 50, max 100</td></tr>
+                <tr><td><code>tool</code></td><td>No</td><td>Filter by exact tool name</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Example Request</h3>
+        <pre>curl "https://digichefs.in/ai-usage-api/get-logs.php?page=1&limit=20&tool=ABFRL" ^
+  -H "X-API-KEY: dgcf_ai_usage_2026_x7Kp92LmQ4vN8zR1tB6sY3wE"</pre>
+    </div>
+
+    <div class="card">
+        <h2>7. Send Today Report API</h2>
+        <p><span class="method post">POST</span><span class="endpoint">https://digichefs.in/ai-usage-api/send-today-report.php</span></p>
+        <p>Sends today’s usage report by email using an external mail API.</p>
+
+        <h3>POST JSON Body</h3>
+        <pre>{
+  "to": ["email1@example.com", "email2@example.com"]
+}</pre>
+
+        <h3>Example POST Request</h3>
+        <pre>curl -X POST https://digichefs.in/ai-usage-api/send-today-report.php ^
+  -H "Content-Type: application/json" ^
+  -d "{\"to\":[\"sajan.m@digichefs.com\",\"sajanmajrekar14@gmail.com\"]}"</pre>
+
+        <h3>Direct GET Trigger</h3>
+        <p><span class="method get">GET</span><span class="endpoint">https://digichefs.in/ai-usage-api/send-today-report.php?direct=1&amp;key=YOUR_API_SECRET</span></p>
+        <p>This sends the report to the hardcoded default recipients.</p>
+
+        <h3>Success Response</h3>
+        <pre>{
+  "success": true,
+  "message": "Today usage report sent successfully.",
+  "to": [
+    "sajan.m@digichefs.com",
+    "sajanmajrekar14@gmail.com"
+  ],
+  "date": "2026-07-24",
+  "mail_response": {
+    "success": true,
+    "message": "Mail API called successfully",
+    "http_code": 200,
+    "response": "..."
+  }
+}</pre>
+    </div>
+
+    <div class="card">
+        <h2>8. Dashboard</h2>
+        <p><span class="method get">GET</span><span class="endpoint">https://digichefs.in/ai-usage-api/dashboard.php</span></p>
+        <p>HTML analytics dashboard for usage monitoring.</p>
+
+        <h3>Query Parameters</h3>
+        <table>
+            <thead><tr><th>Name</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>tool</code></td><td>No</td><td>Allowed: <code>ABFRL</code>, <code>SocialMill</code>, <code>Sizewise</code></td></tr>
+                <tr><td><code>from</code></td><td>No</td><td>Start date, default today</td></tr>
+                <tr><td><code>to</code></td><td>No</td><td>End date, default today</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Example URL</h3>
+        <pre>https://digichefs.in/ai-usage-api/dashboard.php?tool=ABFRL&from=2026-07-01&to=2026-07-24</pre>
+    </div>
+
+    <div class="card">
+        <h2>Internal Files</h2>
+        <p><span class="method internal">INTERNAL</span><strong>config.php</strong></p>
+        <p>Stores database credentials and the shared <code>API_SECRET</code>.</p>
+
+        <p><span class="method internal">INTERNAL</span><strong>db.php</strong></p>
+        <p>Creates the PDO database connection used by the usage/report/dashboard endpoints.</p>
+    </div>
+
+    <div class="card">
+        <h2>Implementation Notes</h2>
+        <ul>
+            <li>User APIs currently use form-data or URL-encoded POST fields, not JSON.</li>
+            <li><code>log-usage.php</code> and <code>send-today-report.php</code> use JSON request bodies.</li>
+            <li><code>get-summary.php</code> and <code>get-logs.php</code> require <code>X-API-KEY</code>.</li>
+            <li><code>login.php</code> returns <code>tool_id</code> and <code>tool_name</code> so you can segregate users after login.</li>
+            <li><code>user_management.php</code> supports all user CRUD actions through the <code>action</code> parameter.</li>
+        </ul>
+    </div>
+</body>
+</html>
