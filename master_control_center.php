@@ -45,8 +45,12 @@ $tools = $stmt->fetchAll();
 $stmt = $pdo->prepare("
     SELECT
         COUNT(*) AS total_requests,
+        COALESCE(SUM(input_tokens), 0) AS input_tokens,
+        COALESCE(SUM(output_tokens), 0) AS output_tokens,
         COALESCE(SUM(total_tokens), 0) AS total_tokens,
         COALESCE(SUM(image_count), 0) AS total_images,
+        COALESCE(SUM(input_cost), 0) AS input_cost,
+        COALESCE(SUM(output_cost), 0) AS output_cost,
         COALESCE(SUM(total_cost), 0) AS total_cost
     FROM ai_usage_logs
     WHERE DATE(created_at) BETWEEN :from_date AND :to_date
@@ -57,8 +61,12 @@ $stmt->execute([
 ]);
 $summary = $stmt->fetch() ?: [
     'total_requests' => 0,
+    'input_tokens' => 0,
+    'output_tokens' => 0,
     'total_tokens' => 0,
     'total_images' => 0,
+    'input_cost' => 0,
+    'output_cost' => 0,
     'total_cost' => 0
 ];
 
@@ -84,6 +92,8 @@ $stmt = $pdo->prepare("
         COALESCE(COUNT(aul.id), 0) AS request_count,
         COALESCE(SUM(aul.total_tokens), 0) AS total_tokens,
         COALESCE(SUM(aul.image_count), 0) AS total_images,
+        COALESCE(SUM(aul.input_cost), 0) AS input_cost,
+        COALESCE(SUM(aul.output_cost), 0) AS output_cost,
         COALESCE(SUM(aul.total_cost), 0) AS total_cost,
         MAX(aul.created_at) AS last_activity
     FROM ai_tools at
@@ -114,7 +124,7 @@ $stmt = $pdo->prepare("
         COALESCE(stats.request_count, 0) AS system_request_count,
         COALESCE(stats.total_tokens, 0) AS system_total_tokens,
         COALESCE(stats.total_images, 0) AS system_total_images,
-        COALESCE(stats.total_cost, 0) AS system_total_cost,
+        COALESCE(stats.system_total_cost, 0) AS system_total_cost,
         stats.last_activity
     FROM user_accounts ua
     LEFT JOIN ai_tools at
@@ -125,7 +135,7 @@ $stmt = $pdo->prepare("
             COUNT(*) AS request_count,
             COALESCE(SUM(total_tokens), 0) AS total_tokens,
             COALESCE(SUM(image_count), 0) AS total_images,
-            COALESCE(SUM(total_cost), 0) AS total_cost,
+            COALESCE(SUM(total_cost), 0) AS system_total_cost,
             MAX(created_at) AS last_activity
         FROM ai_usage_logs
         WHERE DATE(created_at) BETWEEN :from_date AND :to_date
@@ -142,11 +152,29 @@ $users = $stmt->fetchAll();
 
 $stmt = $pdo->prepare("
     SELECT
+        DATE(created_at) AS usage_date,
+        COUNT(*) AS requests,
+        COALESCE(SUM(total_cost), 0) AS total_cost
+    FROM ai_usage_logs
+    WHERE DATE(created_at) BETWEEN :from_date AND :to_date
+    GROUP BY DATE(created_at)
+    ORDER BY usage_date ASC
+");
+$stmt->execute([
+    ':from_date' => $from,
+    ':to_date' => $to
+]);
+$dailyRows = $stmt->fetchAll();
+
+$stmt = $pdo->prepare("
+    SELECT
         id,
         tool_name,
         model_name,
         total_tokens,
         image_count,
+        input_cost,
+        output_cost,
         total_cost,
         status,
         notes,
@@ -162,330 +190,726 @@ $stmt->execute([
 ]);
 $logs = $stmt->fetchAll();
 
-$topSystem = null;
-$maxSystemRequests = 0;
-foreach ($systemCards as $systemCard) {
-    if ((int) $systemCard['request_count'] > $maxSystemRequests) {
-        $maxSystemRequests = (int) $systemCard['request_count'];
-        $topSystem = $systemCard;
-    }
+$toolLabels = [];
+$toolCosts = [];
+$toolColors = ['#6366f1', '#f43f5e', '#10b981', '#06b6d4', '#f59e0b', '#8b5cf6'];
+$toolLegend = [];
+
+foreach ($systemCards as $index => $system) {
+    $toolLabels[] = $system['tool_name'];
+    $toolCosts[] = round((float) $system['total_cost'], 6);
+    $toolLegend[] = [
+        'name' => $system['tool_name'],
+        'color' => $toolColors[$index % count($toolColors)]
+    ];
 }
 
+$dailyLabels = [];
+$dailyRequestData = [];
+$dailyCostData = [];
+foreach ($dailyRows as $dailyRow) {
+    $dailyLabels[] = date('M d', strtotime($dailyRow['usage_date']));
+    $dailyRequestData[] = (int) $dailyRow['requests'];
+    $dailyCostData[] = round((float) $dailyRow['total_cost'], 6);
+}
+
+$avgTokens = (int) $summary['total_requests'] > 0 ? ((float) $summary['total_tokens'] / (int) $summary['total_requests']) : 0;
+$avgCost = (int) $summary['total_requests'] > 0 ? ((float) $summary['total_cost'] / (int) $summary['total_requests']) : 0;
+$inputShare = (float) $summary['total_cost'] > 0 ? round(((float) $summary['input_cost'] / (float) $summary['total_cost']) * 100) : 0;
+$outputShare = (float) $summary['total_cost'] > 0 ? 100 - $inputShare : 0;
 $rangeLabel = $from === $to ? $from : ($from . ' to ' . $to);
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-[#f4f5f7]">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Master Control Center | DigiChefs AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        outfit: ['"Outfit"', 'sans-serif']
+                    },
+                    boxShadow: {
+                        premium: '0 10px 40px -10px rgba(15, 23, 42, 0.05)',
+                        card: '0 12px 40px -12px rgba(15, 23, 42, 0.08)'
+                    }
+                }
+            }
+        };
+    </script>
     <style>
-        :root {
-            --ink: #112218;
-            --mist: #eff5ec;
-            --panel: rgba(255, 255, 255, 0.92);
-            --line: rgba(17, 34, 24, 0.08);
-            --accent: #2f7a4b;
-            --accent-soft: #d7ecd6;
-            --warning: #c7782a;
-            --rose: #9e3f59;
-        }
-
         body {
-            font-family: 'Manrope', sans-serif;
-            color: var(--ink);
-            background:
-                radial-gradient(circle at top left, rgba(117, 184, 127, 0.18), transparent 30%),
-                radial-gradient(circle at right 20%, rgba(236, 190, 123, 0.12), transparent 26%),
-                linear-gradient(180deg, #f7fbf5 0%, #eef4ee 46%, #f9fcf8 100%);
-            min-height: 100vh;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f4f5f7;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .display-font {
-            font-family: 'Space Grotesk', sans-serif;
+        .heading-font {
+            font-family: 'Outfit', sans-serif;
         }
 
-        .glass {
-            background: var(--panel);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--line);
-            box-shadow: 0 18px 40px rgba(35, 54, 40, 0.08);
+        .nice-scroll::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
         }
 
-        .table-scroll::-webkit-scrollbar {
-            height: 8px;
-            width: 8px;
-        }
-
-        .table-scroll::-webkit-scrollbar-thumb {
-            background: rgba(47, 122, 75, 0.25);
+        .nice-scroll::-webkit-scrollbar-thumb {
+            background: #d8deea;
             border-radius: 999px;
+        }
+
+        .transition-soft {
+            transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-active {
+            background-color: #edf2fb;
+            color: #1e293b;
+            font-weight: 600;
         }
     </style>
 </head>
-<body>
-    <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <section class="glass overflow-hidden rounded-[32px]">
-            <div class="grid gap-8 px-6 py-8 lg:grid-cols-[1.2fr_0.8fr] lg:px-8">
-                <div class="space-y-5">
-                    <div class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">
-                        Master Control Center
-                    </div>
-                    <div class="space-y-3">
-                        <h1 class="display-font max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-                            One admin view for users, systems, usage, and live account coverage.
-                        </h1>
-                        <p class="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                            This page combines every current system in <code>ai_tools</code>, every login in <code>user_accounts</code>,
-                            and usage from <code>ai_usage_logs</code>. User-level usage is shown using the mapped system totals,
-                            because logs are currently stored by tool name and not by user ID.
-                        </p>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-3 text-sm">
-                        <span class="rounded-full bg-slate-900 px-4 py-2 font-semibold text-white">Range: <?= h($rangeLabel) ?></span>
-                        <span class="rounded-full bg-white px-4 py-2 font-semibold text-slate-700 ring-1 ring-slate-200"><?= number_format((int) $userSummary['total_users']) ?> users</span>
-                        <span class="rounded-full bg-white px-4 py-2 font-semibold text-slate-700 ring-1 ring-slate-200"><?= number_format(count($tools)) ?> systems</span>
-                        <span class="rounded-full bg-white px-4 py-2 font-semibold text-slate-700 ring-1 ring-slate-200"><?= compact_number($summary['total_requests']) ?> total uses</span>
-                    </div>
-                </div>
+<body class="h-full text-slate-800 antialiased">
+    <div class="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.08),_transparent_22%),radial-gradient(circle_at_right,_rgba(45,212,191,0.08),_transparent_18%)]"></div>
 
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="rounded-3xl bg-slate-950 p-5 text-white shadow-2xl">
-                        <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Total Spend</p>
-                        <p class="display-font mt-3 text-3xl font-bold"><?= money($summary['total_cost']) ?></p>
-                        <p class="mt-2 text-sm text-slate-300">Across all tracked systems in the selected date range.</p>
+    <div id="mobile-sidebar-backdrop" class="fixed inset-0 z-40 hidden bg-slate-900/40 backdrop-blur-sm lg:hidden" onclick="toggleMobileSidebar()"></div>
+
+    <aside id="sidebar-container" class="fixed inset-y-0 left-0 z-50 flex w-[324px] flex-col border-r border-slate-200/70 bg-white px-7 py-6 transition-transform duration-300 -translate-x-full lg:translate-x-0">
+        <div class="mb-10 flex items-center gap-4">
+            <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/20">
+                <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="heading-font text-[2rem] font-bold tracking-tight text-slate-900">DigiChefs</span>
+                    <span class="rounded-xl bg-violet-50 px-2 py-1 text-sm font-bold text-violet-500">AI</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 space-y-2 px-1">
+            <a href="#analytics" class="nav-active flex items-center gap-4 rounded-2xl px-5 py-4 text-[1.05rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
+                <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
+                </svg>
+                <span>Analytics</span>
+            </a>
+
+            <a href="#systems" class="flex items-center gap-4 rounded-2xl px-5 py-4 text-[1.05rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
+                <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                </svg>
+                <span>System Split</span>
+            </a>
+
+            <a href="#usage-dynamics" class="flex items-center gap-4 rounded-2xl px-5 py-4 text-[1.05rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
+                <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <span>Daily Dynamics</span>
+            </a>
+
+            <a href="#data-tables" class="flex items-center gap-4 rounded-2xl px-5 py-4 text-[1.05rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
+                <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <span>Logs & Tables</span>
+            </a>
+
+            <div class="my-5 h-px bg-slate-100"></div>
+
+            <a href="#filters" class="flex items-center gap-4 rounded-2xl px-5 py-4 text-[1.05rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
+                <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+                <span>Filter Panel</span>
+            </a>
+
+            <a href="#directory" class="flex items-center gap-4 rounded-2xl px-5 py-4 text-[1.05rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
+                <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5V4H2v16h5m10 0v-2a4 4 0 00-4-4H9a4 4 0 00-4 4v2m12 0H7m10-10a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span>User Directory</span>
+            </a>
+        </nav>
+
+        <div class="mt-auto rounded-[28px] border border-indigo-100/50 bg-gradient-to-br from-indigo-50 to-slate-50 p-5">
+            <p class="text-sm font-bold text-indigo-900">Need assistance?</p>
+            <p class="mt-2 text-sm leading-6 text-indigo-500">Feel free to contact the administrator.</p>
+            <a href="mailto:sajan.m@digichefs.com" class="mt-5 block rounded-2xl bg-indigo-600 px-4 py-3 text-center text-base font-bold text-white shadow-lg shadow-indigo-600/20 transition-soft hover:bg-indigo-700">
+                Get support
+            </a>
+        </div>
+    </aside>
+
+    <div class="min-h-screen lg:pl-[324px]">
+        <header class="sticky top-0 z-30 flex h-[92px] items-center justify-between border-b border-slate-200/60 bg-[#f4f5f7]/90 px-8 backdrop-blur-md">
+            <div class="flex items-center gap-4">
+                <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm lg:hidden" onclick="toggleMobileSidebar()">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                <h1 class="heading-font text-4xl font-bold tracking-tight text-slate-900">Analytics</h1>
+                <div class="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-500 shadow-sm sm:flex">
+                    <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span><?= h($to) ?></span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-5">
+                <div class="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm sm:flex">
+                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                    Live Data
+                </div>
+                <div class="hidden h-6 w-px bg-slate-200 sm:block"></div>
+                <div class="flex items-center gap-3">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-extrabold text-white shadow-md shadow-indigo-500/20">
+                        SM
                     </div>
-                    <div class="rounded-3xl bg-white p-5 ring-1 ring-slate-200">
-                        <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Token Volume</p>
-                        <p class="display-font mt-3 text-3xl font-bold text-slate-900"><?= compact_number($summary['total_tokens']) ?></p>
-                        <p class="mt-2 text-sm text-slate-500">Total prompt and output tokens logged.</p>
-                    </div>
-                    <div class="rounded-3xl bg-white p-5 ring-1 ring-slate-200">
-                        <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Admins vs Users</p>
-                        <p class="mt-3 text-2xl font-extrabold text-slate-900"><?= number_format((int) $userSummary['total_admins']) ?> / <?= number_format((int) $userSummary['total_standard_users']) ?></p>
-                        <p class="mt-2 text-sm text-slate-500">Admin accounts compared with standard users.</p>
-                    </div>
-                    <div class="rounded-3xl bg-gradient-to-br from-emerald-100 to-lime-50 p-5 ring-1 ring-emerald-200/70">
-                        <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-800">Most Active System</p>
-                        <p class="mt-3 text-2xl font-extrabold text-slate-900"><?= h($topSystem['tool_name'] ?? 'No data') ?></p>
-                        <p class="mt-2 text-sm text-emerald-900/80">
-                            <?= $topSystem ? number_format((int) $topSystem['request_count']) . ' requests in selected range' : 'No usage logged yet.' ?>
-                        </p>
+                    <div class="hidden text-left sm:block">
+                        <p class="text-base font-bold text-slate-900">Sajan M.</p>
+                        <p class="text-sm font-medium text-slate-400">DigiChefs Team</p>
                     </div>
                 </div>
             </div>
-        </section>
+        </header>
 
-        <section class="mt-6 glass rounded-[28px] p-5 sm:p-6">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Filters</p>
-                    <h2 class="display-font mt-2 text-2xl font-bold text-slate-900">Refresh the command view</h2>
-                </div>
-                <form method="get" class="grid gap-3 sm:grid-cols-3">
-                    <label class="text-sm font-semibold text-slate-600">
-                        From
-                        <input type="date" name="from" value="<?= h($from) ?>" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-500">
-                    </label>
-                    <label class="text-sm font-semibold text-slate-600">
-                        To
-                        <input type="date" name="to" value="<?= h($to) ?>" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-500">
-                    </label>
-                    <div class="flex items-end gap-3">
-                        <button type="submit" class="w-full rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-700">Apply</button>
-                    </div>
-                </form>
-            </div>
-        </section>
-
-        <section class="mt-6">
-            <div class="mb-4 flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">System Overview</p>
-                    <h2 class="display-font mt-2 text-2xl font-bold text-slate-900">Every tool in one grid</h2>
-                </div>
-            </div>
-
-            <div class="grid gap-5 lg:grid-cols-3">
-                <?php foreach ($systemCards as $card): ?>
-                    <?php
-                    $statusClasses = (int) $card['is_active'] === 1
-                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                        : 'bg-rose-50 text-rose-700 ring-rose-200';
-                    ?>
-                    <article class="glass rounded-[28px] p-6">
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
-                                <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">System #<?= h($card['id']) ?></p>
-                                <h3 class="display-font mt-2 text-2xl font-bold text-slate-900"><?= h($card['tool_name']) ?></h3>
+        <main class="space-y-7 px-6 py-7 lg:px-8" id="analytics">
+            <section class="grid gap-6 xl:grid-cols-4">
+                <div class="grid gap-6 md:grid-cols-2 xl:col-span-2">
+                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Requests</span>
+                            <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-500">
+                                <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
                             </div>
-                            <span class="rounded-full px-3 py-1 text-xs font-bold ring-1 <?= $statusClasses ?>">
-                                <?= (int) $card['is_active'] === 1 ? 'Active' : 'Inactive' ?>
-                            </span>
                         </div>
-
-                        <div class="mt-5 grid grid-cols-2 gap-3">
-                            <div class="rounded-2xl bg-slate-50 p-4">
-                                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Users</p>
-                                <p class="mt-2 text-2xl font-extrabold text-slate-900"><?= number_format((int) $card['user_count']) ?></p>
+                        <div class="mt-6">
+                            <p class="heading-font text-5xl font-bold tracking-tight text-slate-900"><?= compact_number($summary['total_requests']) ?></p>
+                            <div class="mt-3 flex items-center gap-2 text-sm font-bold text-emerald-500">
+                                <span>↑ Live Log</span>
+                                <span class="text-slate-400">total requests</span>
                             </div>
-                            <div class="rounded-2xl bg-slate-50 p-4">
-                                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Uses</p>
-                                <p class="mt-2 text-2xl font-extrabold text-slate-900"><?= compact_number($card['request_count']) ?></p>
-                            </div>
-                            <div class="rounded-2xl bg-slate-50 p-4">
-                                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Tokens</p>
-                                <p class="mt-2 text-xl font-extrabold text-slate-900"><?= compact_number($card['total_tokens']) ?></p>
-                            </div>
-                            <div class="rounded-2xl bg-slate-50 p-4">
-                                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Spend</p>
-                                <p class="mt-2 text-xl font-extrabold text-slate-900"><?= money($card['total_cost']) ?></p>
-                            </div>
-                        </div>
-
-                        <div class="mt-5 rounded-2xl bg-gradient-to-r from-emerald-50 to-amber-50 p-4 ring-1 ring-emerald-100">
-                            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Last Activity</p>
-                            <p class="mt-2 text-sm font-semibold text-slate-900"><?= h($card['last_activity'] ?: 'No logs found in selected range') ?></p>
-                            <p class="mt-1 text-xs leading-6 text-slate-500">Includes all usage logs tied to this system name in <code>ai_usage_logs</code>.</p>
                         </div>
                     </article>
-                <?php endforeach; ?>
-            </div>
-        </section>
 
-        <section class="mt-6 grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-            <div class="glass rounded-[28px] p-5 sm:p-6">
-                <div class="mb-4">
-                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">User Directory</p>
-                    <h2 class="display-font mt-2 text-2xl font-bold text-slate-900">All users, mapped systems, and stored credentials</h2>
+                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Tokens</span>
+                            <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-violet-50 text-violet-500">
+                                <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 12h10M7 17h10M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <p class="heading-font text-5xl font-bold tracking-tight text-slate-900"><?= compact_number($summary['total_tokens']) ?></p>
+                            <div class="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold">
+                                <span class="rounded-lg bg-indigo-50 px-2 py-1 text-indigo-500">Avg: <?= number_format($avgTokens, 0) ?></span>
+                                <span class="text-slate-400">tokens/request</span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Images</span>
+                            <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-amber-50 text-amber-500">
+                                <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2 1.586-1.586a2 2 0 012.828 0L20 14m-6-10h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <p class="heading-font text-5xl font-bold tracking-tight text-slate-900"><?= compact_number($summary['total_images']) ?></p>
+                            <div class="mt-3 text-sm font-bold text-slate-400">generated media items</div>
+                        </div>
+                    </article>
+
+                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Estimated Cost</span>
+                            <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-500">
+                                <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2m0 0c-1.657 0-3-.895-3-2m6 0c0 1.105-1.343 2-3 2" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <p class="heading-font text-5xl font-bold tracking-tight text-slate-900"><?= money($summary['total_cost']) ?></p>
+                            <div class="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold">
+                                <span class="rounded-lg bg-emerald-50 px-2 py-1 text-emerald-600">Avg: <?= money($avgCost) ?></span>
+                                <span class="text-slate-400">per request</span>
+                            </div>
+                        </div>
+                    </article>
                 </div>
-                <div class="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 ring-1 ring-amber-200">
-                    User-level usage is currently shown using the totals of the mapped system, because logs are grouped by tool name, not by user ID.
+
+                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium" id="systems">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <h3 class="heading-font text-[1.7rem] font-bold text-slate-900">System Spend Share</h3>
+                            <p class="mt-2 text-lg text-slate-400">Spending share per custom AI integration</p>
+                        </div>
+                        <span class="rounded-xl bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-500">COST SPLIT</span>
+                    </div>
+                    <div class="mt-6 flex items-center justify-center">
+                        <div class="h-[260px] w-[260px]">
+                            <canvas id="chart-tool-share"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-5 border-t border-slate-100 pt-4">
+                        <div class="flex flex-wrap gap-5 text-sm font-bold text-slate-500">
+                            <?php foreach ($toolLegend as $legendItem): ?>
+                                <div class="flex items-center gap-2">
+                                    <span class="h-3 w-3 rounded-full" style="background-color: <?= h($legendItem['color']) ?>"></span>
+                                    <span><?= h($legendItem['name']) ?></span>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <h3 class="heading-font text-[1.7rem] font-bold text-slate-900">Token Volume Split</h3>
+                            <p class="mt-2 text-lg text-slate-400">Proportion of input vs output tokens</p>
+                        </div>
+                        <span class="rounded-xl bg-violet-50 px-3 py-1 text-sm font-bold text-violet-500">VOLUME</span>
+                    </div>
+                    <div class="mt-6 flex items-center justify-center">
+                        <div class="h-[260px] w-[260px]">
+                            <canvas id="chart-token-share"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-5 border-t border-slate-100 pt-4">
+                        <div class="flex flex-wrap gap-8 text-sm font-bold text-slate-500">
+                            <div class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-indigo-500"></span><span>Input</span></div>
+                            <div class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-cyan-500"></span><span>Output</span></div>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="grid gap-6 xl:grid-cols-[1.45fr_0.45fr]" id="usage-dynamics">
+                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                    <div class="flex items-center justify-between gap-4">
+                        <div>
+                            <h3 class="heading-font text-[2rem] font-bold text-slate-900">Usage & Spending Dynamics</h3>
+                            <p class="mt-2 text-[1.1rem] text-slate-400">Daily spending (USD) and request volume plotted chronologically</p>
+                        </div>
+                        <div class="hidden rounded-full border border-slate-200 px-4 py-2 text-base font-semibold text-slate-500 sm:block">
+                            Calendar
+                        </div>
+                    </div>
+                    <div class="mt-6 h-[380px]">
+                        <canvas id="chart-dynamics"></canvas>
+                    </div>
+                </article>
+
+                <div class="space-y-6">
+                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Input Spend</p>
+                                <p class="mt-4 heading-font text-5xl font-bold text-slate-900"><?= money($summary['input_cost']) ?></p>
+                                <p class="mt-2 text-lg text-slate-400">Input token expense</p>
+                            </div>
+                            <div class="flex h-16 w-16 items-center justify-center rounded-full border-4 border-indigo-100 text-base font-extrabold text-indigo-500">
+                                <?= h($inputShare) ?>%
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Output Spend</p>
+                                <p class="mt-4 heading-font text-5xl font-bold text-slate-900"><?= money($summary['output_cost']) ?></p>
+                                <p class="mt-2 text-lg text-slate-400">Output + media expense</p>
+                            </div>
+                            <div class="flex h-16 w-16 items-center justify-center rounded-full border-4 border-emerald-100 text-base font-extrabold text-emerald-500">
+                                <?= h($outputShare) ?>%
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium" id="filters">
+                        <p class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Filter Panel</p>
+                        <form method="get" class="mt-5 space-y-4">
+                            <label class="block text-sm font-bold text-slate-500">
+                                From
+                                <input type="date" name="from" value="<?= h($from) ?>" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 outline-none focus:border-indigo-300 focus:bg-white">
+                            </label>
+                            <label class="block text-sm font-bold text-slate-500">
+                                To
+                                <input type="date" name="to" value="<?= h($to) ?>" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 outline-none focus:border-indigo-300 focus:bg-white">
+                            </label>
+                            <button type="submit" class="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-base font-bold text-white shadow-lg shadow-indigo-600/20 transition-soft hover:bg-indigo-700">
+                                Apply Filter
+                            </button>
+                            <p class="text-sm text-slate-400">Current range: <?= h($rangeLabel) ?></p>
+                        </form>
+                    </article>
                 </div>
-                <div class="table-scroll mt-4 overflow-x-auto">
-                    <table class="min-w-[1100px] w-full text-left text-sm">
+            </section>
+
+            <section class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]" id="data-tables">
+                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                    <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                        <div>
+                            <h3 class="heading-font text-[1.55rem] font-bold text-slate-900">System Breakdown Table</h3>
+                            <p class="mt-1 text-sm text-slate-400">Each tool with mapped users, total uses, tokens, images, and spend</p>
+                        </div>
+                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500"><?= count($systemCards) ?> active</span>
+                    </div>
+                    <div class="nice-scroll overflow-x-auto">
+                        <table class="mt-4 w-full min-w-[760px] text-left text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-100 text-xs uppercase tracking-[0.18em] text-slate-400">
+                                    <th class="py-3 font-bold">System</th>
+                                    <th class="py-3 text-right font-bold">Users</th>
+                                    <th class="py-3 text-right font-bold">Uses</th>
+                                    <th class="py-3 text-right font-bold">Tokens</th>
+                                    <th class="py-3 text-right font-bold">Images</th>
+                                    <th class="py-3 text-right font-bold">Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <?php foreach ($systemCards as $index => $row): ?>
+                                    <tr class="hover:bg-slate-50/60">
+                                        <td class="py-4">
+                                            <div class="flex items-center gap-3">
+                                                <span class="flex h-10 w-10 items-center justify-center rounded-2xl text-xs font-extrabold text-white" style="background-color: <?= h($toolColors[$index % count($toolColors)]) ?>">
+                                                    <?= h(substr($row['tool_name'], 0, 2)) ?>
+                                                </span>
+                                                <div>
+                                                    <div class="font-bold text-slate-900"><?= h($row['tool_name']) ?></div>
+                                                    <div class="text-xs text-slate-400">ID <?= h($row['id']) ?> • <?= (int) $row['is_active'] === 1 ? 'Active' : 'Inactive' ?></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $row['user_count']) ?></td>
+                                        <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $row['request_count']) ?></td>
+                                        <td class="py-4 text-right font-semibold text-slate-700"><?= compact_number($row['total_tokens']) ?></td>
+                                        <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $row['total_images']) ?></td>
+                                        <td class="py-4 text-right font-extrabold text-indigo-600"><?= money($row['total_cost']) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                    <div class="border-b border-slate-100 pb-5">
+                        <h3 class="heading-font text-[1.55rem] font-bold text-slate-900">Coverage Snapshot</h3>
+                        <p class="mt-1 text-sm text-slate-400">What this master page includes at a glance</p>
+                    </div>
+                    <div class="mt-5 space-y-4">
+                        <div class="rounded-3xl bg-slate-50 p-5">
+                            <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-400">Total Users</p>
+                            <p class="mt-3 heading-font text-4xl font-bold text-slate-900"><?= number_format((int) $userSummary['total_users']) ?></p>
+                            <p class="mt-2 text-sm text-slate-400">Every login from <code>user_accounts</code>.</p>
+                        </div>
+                        <div class="rounded-3xl bg-slate-50 p-5">
+                            <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-400">Admins / Users</p>
+                            <p class="mt-3 heading-font text-4xl font-bold text-slate-900"><?= number_format((int) $userSummary['total_admins']) ?> / <?= number_format((int) $userSummary['total_standard_users']) ?></p>
+                            <p class="mt-2 text-sm text-slate-400">Role split from the current login table.</p>
+                        </div>
+                        <div class="rounded-3xl bg-slate-50 p-5">
+                            <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-400">Recent Logs Loaded</p>
+                            <p class="mt-3 heading-font text-4xl font-bold text-slate-900"><?= number_format(count($logs)) ?></p>
+                            <p class="mt-2 text-sm text-slate-400">Last 100 rows from <code>ai_usage_logs</code>.</p>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium" id="directory">
+                <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                    <div>
+                        <h3 class="heading-font text-[1.7rem] font-bold text-slate-900">User Directory</h3>
+                        <p class="mt-1 text-sm text-slate-400">All systems users with username, stored password, role, mapped system, and system-level usage totals</p>
+                    </div>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500"><?= count($users) ?> users</span>
+                </div>
+                <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                    Usage is shown from the mapped system totals because logs are stored by <code>tool_name</code>, not by <code>user_id</code>.
+                </div>
+                <div class="nice-scroll overflow-x-auto">
+                    <table class="mt-4 w-full min-w-[1250px] text-left text-sm">
                         <thead>
-                            <tr class="border-b border-slate-200 text-xs uppercase tracking-[0.2em] text-slate-500">
-                                <th class="px-3 py-3 font-bold">User</th>
-                                <th class="px-3 py-3 font-bold">Password</th>
-                                <th class="px-3 py-3 font-bold">Role</th>
-                                <th class="px-3 py-3 font-bold">System</th>
-                                <th class="px-3 py-3 font-bold">System Uses</th>
-                                <th class="px-3 py-3 font-bold">System Spend</th>
-                                <th class="px-3 py-3 font-bold">Last Activity</th>
-                                <th class="px-3 py-3 font-bold">Created</th>
+                            <tr class="border-b border-slate-100 text-xs uppercase tracking-[0.18em] text-slate-400">
+                                <th class="py-3 font-bold">User</th>
+                                <th class="py-3 font-bold">Password</th>
+                                <th class="py-3 font-bold">Role</th>
+                                <th class="py-3 font-bold">System</th>
+                                <th class="py-3 text-right font-bold">System Uses</th>
+                                <th class="py-3 text-right font-bold">Tokens</th>
+                                <th class="py-3 text-right font-bold">Images</th>
+                                <th class="py-3 text-right font-bold">Spend</th>
+                                <th class="py-3 font-bold">Last Activity</th>
+                                <th class="py-3 font-bold">Created</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <?php foreach ($users as $user): ?>
-                                <tr class="hover:bg-slate-50/70">
-                                    <td class="px-3 py-4">
-                                        <div class="font-extrabold text-slate-900"><?= h($user['username']) ?></div>
-                                        <div class="text-xs text-slate-500">ID #<?= h($user['id']) ?></div>
+                                <tr class="hover:bg-slate-50/60">
+                                    <td class="py-4">
+                                        <div class="font-bold text-slate-900"><?= h($user['username']) ?></div>
+                                        <div class="text-xs text-slate-400">ID #<?= h($user['id']) ?></div>
                                     </td>
-                                    <td class="px-3 py-4">
-                                        <code class="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-800"><?= h($user['password']) ?></code>
+                                    <td class="py-4">
+                                        <code class="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700"><?= h($user['password']) ?></code>
                                     </td>
-                                    <td class="px-3 py-4">
+                                    <td class="py-4">
                                         <span class="rounded-full bg-slate-900 px-3 py-1 text-xs font-bold text-white"><?= h($user['role']) ?></span>
                                     </td>
-                                    <td class="px-3 py-4">
+                                    <td class="py-4">
                                         <div class="font-bold text-slate-900"><?= h($user['tool_name'] ?: 'Unassigned') ?></div>
-                                        <div class="text-xs text-slate-500">tool_id: <?= h($user['tool_id'] ?: '-') ?></div>
+                                        <div class="text-xs text-slate-400">tool_id: <?= h($user['tool_id'] ?: '-') ?></div>
                                     </td>
-                                    <td class="px-3 py-4 font-bold text-slate-900"><?= number_format((int) $user['system_request_count']) ?></td>
-                                    <td class="px-3 py-4 font-bold text-emerald-700"><?= money($user['system_total_cost']) ?></td>
-                                    <td class="px-3 py-4 text-slate-600"><?= h($user['last_activity'] ?: 'No activity') ?></td>
-                                    <td class="px-3 py-4 text-slate-600"><?= h($user['created_at']) ?></td>
+                                    <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $user['system_request_count']) ?></td>
+                                    <td class="py-4 text-right font-semibold text-slate-700"><?= compact_number($user['system_total_tokens']) ?></td>
+                                    <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $user['system_total_images']) ?></td>
+                                    <td class="py-4 text-right font-extrabold text-indigo-600"><?= money($user['system_total_cost']) ?></td>
+                                    <td class="py-4 text-slate-500"><?= h($user['last_activity'] ?: 'No activity') ?></td>
+                                    <td class="py-4 text-slate-500"><?= h($user['created_at']) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
 
-            <div class="space-y-6">
-                <div class="glass rounded-[28px] p-6">
-                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Quick Snapshot</p>
-                    <h2 class="display-font mt-2 text-2xl font-bold text-slate-900">What this page is surfacing</h2>
-                    <ul class="mt-4 space-y-3 text-sm leading-7 text-slate-600">
-                        <li>Every user in <code>user_accounts</code> with their role, mapped tool, and stored password.</li>
-                        <li>Every system in <code>ai_tools</code> with usage totals and user coverage.</li>
-                        <li>All usage from <code>ai_usage_logs</code> across the selected date range.</li>
-                        <li>A recent activity table so you can inspect raw log behavior quickly.</li>
-                    </ul>
-                </div>
-
-                <div class="glass rounded-[28px] p-6">
-                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Totals</p>
-                    <div class="mt-4 space-y-4">
-                        <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                            <span class="text-sm font-semibold text-slate-500">Total Images</span>
-                            <span class="text-lg font-extrabold text-slate-900"><?= compact_number($summary['total_images']) ?></span>
-                        </div>
-                        <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                            <span class="text-sm font-semibold text-slate-500">Recent Logs Loaded</span>
-                            <span class="text-lg font-extrabold text-slate-900"><?= number_format(count($logs)) ?></span>
-                        </div>
-                        <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                            <span class="text-sm font-semibold text-slate-500">Active Systems</span>
-                            <span class="text-lg font-extrabold text-slate-900"><?= number_format(count(array_filter($tools, function ($toolRow) { return (int) $toolRow['is_active'] === 1; }))) ?></span>
-                        </div>
+            <section class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                    <div>
+                        <h3 class="heading-font text-[1.7rem] font-bold text-slate-900">Latest Usage Logs</h3>
+                        <p class="mt-1 text-sm text-slate-400">Recent log activity for the selected date range</p>
                     </div>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500"><?= count($logs) ?> logs</span>
                 </div>
-            </div>
-        </section>
-
-        <section class="mt-6 glass rounded-[28px] p-5 sm:p-6">
-            <div class="mb-4">
-                <p class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Recent Activity</p>
-                <h2 class="display-font mt-2 text-2xl font-bold text-slate-900">Latest usage logs</h2>
-            </div>
-            <div class="table-scroll overflow-x-auto">
-                <table class="min-w-[980px] w-full text-left text-sm">
-                    <thead>
-                        <tr class="border-b border-slate-200 text-xs uppercase tracking-[0.2em] text-slate-500">
-                            <th class="px-3 py-3 font-bold">ID</th>
-                            <th class="px-3 py-3 font-bold">System</th>
-                            <th class="px-3 py-3 font-bold">Model</th>
-                            <th class="px-3 py-3 font-bold">Tokens</th>
-                            <th class="px-3 py-3 font-bold">Images</th>
-                            <th class="px-3 py-3 font-bold">Cost</th>
-                            <th class="px-3 py-3 font-bold">Status</th>
-                            <th class="px-3 py-3 font-bold">Notes</th>
-                            <th class="px-3 py-3 font-bold">Created</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <?php if (!$logs): ?>
-                            <tr>
-                                <td colspan="9" class="px-3 py-8 text-center text-sm font-semibold text-slate-500">No logs found for the selected date range.</td>
+                <div class="nice-scroll overflow-x-auto max-h-[420px] overflow-y-auto">
+                    <table class="mt-4 w-full min-w-[1220px] text-left text-sm">
+                        <thead class="sticky top-0 bg-white">
+                            <tr class="border-b border-slate-100 text-xs uppercase tracking-[0.18em] text-slate-400">
+                                <th class="py-3 font-bold">ID</th>
+                                <th class="py-3 font-bold">System</th>
+                                <th class="py-3 font-bold">Model</th>
+                                <th class="py-3 text-right font-bold">Tokens</th>
+                                <th class="py-3 text-right font-bold">Images</th>
+                                <th class="py-3 text-right font-bold">Input Cost</th>
+                                <th class="py-3 text-right font-bold">Output Cost</th>
+                                <th class="py-3 text-right font-bold">Total Cost</th>
+                                <th class="py-3 font-bold">Status</th>
+                                <th class="py-3 font-bold">Notes</th>
+                                <th class="py-3 font-bold">Created</th>
                             </tr>
-                        <?php endif; ?>
-                        <?php foreach ($logs as $log): ?>
-                            <tr class="hover:bg-slate-50/70">
-                                <td class="px-3 py-4 font-bold text-slate-500">#<?= h($log['id']) ?></td>
-                                <td class="px-3 py-4 font-bold text-slate-900"><?= h($log['tool_name']) ?></td>
-                                <td class="px-3 py-4 text-slate-600"><?= h($log['model_name']) ?></td>
-                                <td class="px-3 py-4 font-bold text-slate-900"><?= number_format((int) $log['total_tokens']) ?></td>
-                                <td class="px-3 py-4 text-slate-600"><?= number_format((int) $log['image_count']) ?></td>
-                                <td class="px-3 py-4 font-bold text-emerald-700"><?= money($log['total_cost']) ?></td>
-                                <td class="px-3 py-4">
-                                    <?php $statusClass = $log['status'] === 'success' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-rose-50 text-rose-700 ring-rose-200'; ?>
-                                    <span class="rounded-full px-3 py-1 text-xs font-bold ring-1 <?= $statusClass ?>"><?= h($log['status']) ?></span>
-                                </td>
-                                <td class="px-3 py-4 text-slate-600"><?= h($log['notes']) ?></td>
-                                <td class="px-3 py-4 text-slate-600"><?= h($log['created_at']) ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <?php if (!$logs): ?>
+                                <tr>
+                                    <td colspan="11" class="py-8 text-center text-sm font-semibold text-slate-400">No logs found for the selected range.</td>
+                                </tr>
+                            <?php endif; ?>
+                            <?php foreach ($logs as $log): ?>
+                                <tr class="hover:bg-slate-50/60">
+                                    <td class="py-4 font-semibold text-slate-400">#<?= h($log['id']) ?></td>
+                                    <td class="py-4 font-bold text-slate-900"><?= h($log['tool_name']) ?></td>
+                                    <td class="py-4 text-slate-500"><?= h($log['model_name']) ?></td>
+                                    <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $log['total_tokens']) ?></td>
+                                    <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $log['image_count']) ?></td>
+                                    <td class="py-4 text-right font-semibold text-slate-700"><?= money($log['input_cost']) ?></td>
+                                    <td class="py-4 text-right font-semibold text-slate-700"><?= money($log['output_cost']) ?></td>
+                                    <td class="py-4 text-right font-extrabold text-indigo-600"><?= money($log['total_cost']) ?></td>
+                                    <td class="py-4">
+                                        <?php $statusClass = $log['status'] === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'; ?>
+                                        <span class="inline-flex rounded-full px-3 py-1 text-xs font-extrabold <?= $statusClass ?>"><?= h($log['status']) ?></span>
+                                    </td>
+                                    <td class="py-4 text-slate-500"><?= h($log['notes']) ?></td>
+                                    <td class="py-4 text-slate-500"><?= h($log['created_at']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
     </div>
+
+    <script>
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar-container');
+            const backdrop = document.getElementById('mobile-sidebar-backdrop');
+
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            }
+        }
+
+        const toolLabels = <?= json_encode($toolLabels) ?>;
+        const toolCosts = <?= json_encode($toolCosts) ?>;
+        const toolColors = <?= json_encode(array_slice($toolColors, 0, max(count($toolLabels), 1))) ?>;
+
+        new Chart(document.getElementById('chart-tool-share'), {
+            type: 'doughnut',
+            data: {
+                labels: toolLabels,
+                datasets: [{
+                    data: toolCosts.length ? toolCosts : [1],
+                    backgroundColor: toolCosts.length ? toolColors : ['#e2e8f0'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' ' + context.label + ': $' + Number(context.raw).toFixed(6);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('chart-token-share'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Input', 'Output'],
+                datasets: [{
+                    data: [<?= (float) $summary['input_tokens'] ?>, <?= (float) $summary['output_tokens'] ?>],
+                    backgroundColor: ['#6366f1', '#06b6d4'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('chart-dynamics'), {
+            type: 'bar',
+            data: {
+                labels: <?= json_encode($dailyLabels) ?>,
+                datasets: [
+                    {
+                        label: 'Estimated Spend',
+                        type: 'line',
+                        data: <?= json_encode($dailyCostData) ?>,
+                        borderColor: '#6366f1',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#6366f1',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 6,
+                        tension: 0.35,
+                        fill: false,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Requests',
+                        type: 'bar',
+                        data: <?= json_encode($dailyRequestData) ?>,
+                        backgroundColor: 'rgba(226, 232, 240, 0.9)',
+                        hoverBackgroundColor: 'rgba(99, 102, 241, 0.18)',
+                        borderRadius: 10,
+                        barThickness: 16,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    return ' Spend: $' + Number(context.raw).toFixed(6);
+                                }
+                                return ' Requests: ' + context.raw;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            font: { size: 11, weight: 'bold' },
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: {
+                            color: '#eef2f7',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: { size: 10, weight: 'bold' },
+                            color: '#94a3b8',
+                            callback: function(value) {
+                                return '$' + Number(value).toFixed(3);
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: {
+                            font: { size: 10, weight: 'bold' },
+                            color: '#94a3b8',
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>
