@@ -30,6 +30,7 @@ function compact_number($value) {
 
 $from = trim($_GET['from'] ?? date('Y-m-01'));
 $to = trim($_GET['to'] ?? date('Y-m-d'));
+$selectedToolId = max(0, (int) ($_GET['tool_id'] ?? 0));
 
 $stmt = $pdo->query("
     SELECT
@@ -42,7 +43,15 @@ $stmt = $pdo->query("
 ");
 $tools = $stmt->fetchAll();
 
-$stmt = $pdo->prepare("
+$selectedToolName = '';
+foreach ($tools as $toolRow) {
+    if ((int) $toolRow['id'] === $selectedToolId) {
+        $selectedToolName = $toolRow['tool_name'];
+        break;
+    }
+}
+
+$summarySql = "
     SELECT
         COUNT(*) AS total_requests,
         COALESCE(SUM(input_tokens), 0) AS input_tokens,
@@ -54,11 +63,17 @@ $stmt = $pdo->prepare("
         COALESCE(SUM(total_cost), 0) AS total_cost
     FROM ai_usage_logs
     WHERE DATE(created_at) BETWEEN :from_date AND :to_date
-");
-$stmt->execute([
+";
+$summaryParams = [
     ':from_date' => $from,
     ':to_date' => $to
-]);
+];
+if ($selectedToolName !== '') {
+    $summarySql .= " AND tool_name = :tool_name";
+    $summaryParams[':tool_name'] = $selectedToolName;
+}
+$stmt = $pdo->prepare($summarySql);
+$stmt->execute($summaryParams);
 $summary = $stmt->fetch() ?: [
     'total_requests' => 0,
     'input_tokens' => 0,
@@ -83,7 +98,7 @@ $userSummary = $stmt->fetch() ?: [
     'total_standard_users' => 0
 ];
 
-$stmt = $pdo->prepare("
+$systemSql = "
     SELECT
         at.id,
         at.tool_name,
@@ -102,16 +117,24 @@ $stmt = $pdo->prepare("
     LEFT JOIN ai_usage_logs aul
         ON aul.tool_name = at.tool_name
         AND DATE(aul.created_at) BETWEEN :from_date AND :to_date
-    GROUP BY at.id, at.tool_name, at.is_active
-    ORDER BY total_cost DESC, at.tool_name ASC
-");
-$stmt->execute([
+";
+$systemParams = [
     ':from_date' => $from,
     ':to_date' => $to
-]);
+];
+if ($selectedToolId > 0) {
+    $systemSql .= " WHERE at.id = :selected_tool_id";
+    $systemParams[':selected_tool_id'] = $selectedToolId;
+}
+$systemSql .= "
+    GROUP BY at.id, at.tool_name, at.is_active
+    ORDER BY total_cost DESC, at.tool_name ASC
+";
+$stmt = $pdo->prepare($systemSql);
+$stmt->execute($systemParams);
 $systemCards = $stmt->fetchAll();
 
-$stmt = $pdo->prepare("
+$userSql = "
     SELECT
         ua.id,
         ua.username,
@@ -142,31 +165,45 @@ $stmt = $pdo->prepare("
         GROUP BY tool_name
     ) stats
         ON stats.tool_name = at.tool_name
-    ORDER BY at.tool_name ASC, ua.id DESC
-");
-$stmt->execute([
+";
+$userParams = [
     ':from_date' => $from,
     ':to_date' => $to
-]);
+];
+if ($selectedToolId > 0) {
+    $userSql .= " WHERE ua.tool_id = :selected_tool_id";
+    $userParams[':selected_tool_id'] = $selectedToolId;
+}
+$userSql .= " ORDER BY at.tool_name ASC, ua.id DESC";
+$stmt = $pdo->prepare($userSql);
+$stmt->execute($userParams);
 $users = $stmt->fetchAll();
 
-$stmt = $pdo->prepare("
+$dailySql = "
     SELECT
         DATE(created_at) AS usage_date,
         COUNT(*) AS requests,
         COALESCE(SUM(total_cost), 0) AS total_cost
     FROM ai_usage_logs
     WHERE DATE(created_at) BETWEEN :from_date AND :to_date
-    GROUP BY DATE(created_at)
-    ORDER BY usage_date ASC
-");
-$stmt->execute([
+";
+$dailyParams = [
     ':from_date' => $from,
     ':to_date' => $to
-]);
+];
+if ($selectedToolName !== '') {
+    $dailySql .= " AND tool_name = :tool_name";
+    $dailyParams[':tool_name'] = $selectedToolName;
+}
+$dailySql .= "
+    GROUP BY DATE(created_at)
+    ORDER BY usage_date ASC
+";
+$stmt = $pdo->prepare($dailySql);
+$stmt->execute($dailyParams);
 $dailyRows = $stmt->fetchAll();
 
-$stmt = $pdo->prepare("
+$logsSql = "
     SELECT
         id,
         tool_name,
@@ -181,13 +218,21 @@ $stmt = $pdo->prepare("
         created_at
     FROM ai_usage_logs
     WHERE DATE(created_at) BETWEEN :from_date AND :to_date
-    ORDER BY id DESC
-    LIMIT 100
-");
-$stmt->execute([
+";
+$logsParams = [
     ':from_date' => $from,
     ':to_date' => $to
-]);
+];
+if ($selectedToolName !== '') {
+    $logsSql .= " AND tool_name = :tool_name";
+    $logsParams[':tool_name'] = $selectedToolName;
+}
+$logsSql .= "
+    ORDER BY id DESC
+    LIMIT 100
+";
+$stmt = $pdo->prepare($logsSql);
+$stmt->execute($logsParams);
 $logs = $stmt->fetchAll();
 
 $toolLabels = [];
@@ -218,6 +263,7 @@ $avgCost = (int) $summary['total_requests'] > 0 ? ((float) $summary['total_cost'
 $inputShare = (float) $summary['total_cost'] > 0 ? round(((float) $summary['input_cost'] / (float) $summary['total_cost']) * 100) : 0;
 $outputShare = (float) $summary['total_cost'] > 0 ? 100 - $inputShare : 0;
 $rangeLabel = $from === $to ? $from : ($from . ' to ' . $to);
+$headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLabel : $rangeLabel;
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-[#f4f5f7]">
@@ -367,7 +413,7 @@ $rangeLabel = $from === $to ? $from : ($from . ' to ' . $to);
                     <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <span><?= h($to) ?></span>
+                    <span><?= h($headerLabel) ?></span>
                 </div>
             </div>
 
@@ -563,12 +609,31 @@ $rangeLabel = $from === $to ? $from : ($from . ' to ' . $to);
                                 To
                                 <input type="date" name="to" value="<?= h($to) ?>" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 outline-none focus:border-indigo-300 focus:bg-white">
                             </label>
+                            <input type="hidden" name="tool_id" value="<?= h($selectedToolId) ?>">
                             <button type="submit" class="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-base font-bold text-white shadow-lg shadow-indigo-600/20 transition-soft hover:bg-indigo-700">
                                 Apply Filter
                             </button>
                             <p class="text-sm text-slate-400">Current range: <?= h($rangeLabel) ?></p>
                         </form>
                     </article>
+                </div>
+            </section>
+
+            <section class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium" id="tool-selection">
+                <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                    <div>
+                        <h3 class="heading-font text-[1.55rem] font-bold text-slate-900">Tool Selection</h3>
+                        <p class="mt-1 text-sm text-slate-400">Select one system tab to filter all charts, tables, and logs.</p>
+                    </div>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500"><?= $selectedToolName !== '' ? h($selectedToolName) : 'All Systems' ?></span>
+                </div>
+                <div class="mt-5 flex flex-wrap gap-3">
+                    <a href="?from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>" class="rounded-2xl px-5 py-3 text-sm font-bold transition-soft <?= $selectedToolId === 0 ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/15' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' ?>">All Systems</a>
+                    <?php foreach ($tools as $toolTab): ?>
+                        <a href="?from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>&tool_id=<?= urlencode($toolTab['id']) ?>" class="rounded-2xl px-5 py-3 text-sm font-bold transition-soft <?= $selectedToolId === (int) $toolTab['id'] ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' ?>">
+                            <?= h($toolTab['tool_name']) ?>
+                        </a>
+                    <?php endforeach; ?>
                 </div>
             </section>
 
@@ -644,61 +709,118 @@ $rangeLabel = $from === $to ? $from : ($from . ' to ' . $to);
                 </article>
             </section>
 
-            <section class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium" id="directory">
-                <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
-                    <div>
-                        <h3 class="heading-font text-[1.7rem] font-bold text-slate-900">User Directory</h3>
-                        <p class="mt-1 text-sm text-slate-400">All systems users with username, stored password, role, mapped system, and system-level usage totals</p>
+            <section class="grid gap-6 xl:grid-cols-[0.42fr_0.58fr]" id="directory">
+                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                    <div class="border-b border-slate-100 pb-5">
+                        <h3 class="heading-font text-[1.45rem] font-bold text-slate-900">User Management</h3>
+                        <p class="mt-1 text-sm text-slate-400">Add or remove both USER and ADMIN accounts directly from this panel.</p>
                     </div>
-                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500"><?= count($users) ?> users</span>
-                </div>
-                <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                    Usage is shown from the mapped system totals because logs are stored by <code>tool_name</code>, not by <code>user_id</code>.
-                </div>
-                <div class="nice-scroll overflow-x-auto">
-                    <table class="mt-4 w-full min-w-[1250px] text-left text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-100 text-xs uppercase tracking-[0.18em] text-slate-400">
-                                <th class="py-3 font-bold">User</th>
-                                <th class="py-3 font-bold">Password</th>
-                                <th class="py-3 font-bold">Role</th>
-                                <th class="py-3 font-bold">System</th>
-                                <th class="py-3 text-right font-bold">System Uses</th>
-                                <th class="py-3 text-right font-bold">Tokens</th>
-                                <th class="py-3 text-right font-bold">Images</th>
-                                <th class="py-3 text-right font-bold">Spend</th>
-                                <th class="py-3 font-bold">Last Activity</th>
-                                <th class="py-3 font-bold">Created</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <?php foreach ($users as $user): ?>
-                                <tr class="hover:bg-slate-50/60">
-                                    <td class="py-4">
-                                        <div class="font-bold text-slate-900"><?= h($user['username']) ?></div>
-                                        <div class="text-xs text-slate-400">ID #<?= h($user['id']) ?></div>
-                                    </td>
-                                    <td class="py-4">
-                                        <code class="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700"><?= h($user['password']) ?></code>
-                                    </td>
-                                    <td class="py-4">
-                                        <span class="rounded-full bg-slate-900 px-3 py-1 text-xs font-bold text-white"><?= h($user['role']) ?></span>
-                                    </td>
-                                    <td class="py-4">
-                                        <div class="font-bold text-slate-900"><?= h($user['tool_name'] ?: 'Unassigned') ?></div>
-                                        <div class="text-xs text-slate-400">tool_id: <?= h($user['tool_id'] ?: '-') ?></div>
-                                    </td>
-                                    <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $user['system_request_count']) ?></td>
-                                    <td class="py-4 text-right font-semibold text-slate-700"><?= compact_number($user['system_total_tokens']) ?></td>
-                                    <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $user['system_total_images']) ?></td>
-                                    <td class="py-4 text-right font-extrabold text-indigo-600"><?= money($user['system_total_cost']) ?></td>
-                                    <td class="py-4 text-slate-500"><?= h($user['last_activity'] ?: 'No activity') ?></td>
-                                    <td class="py-4 text-slate-500"><?= h($user['created_at']) ?></td>
+
+                    <div class="mt-6 space-y-6">
+                        <div class="rounded-3xl bg-slate-50 p-5">
+                            <h4 class="text-base font-extrabold text-slate-900">Create Account</h4>
+                            <form action="create_user.php" method="post" class="mt-4 space-y-4">
+                                <label class="block text-sm font-bold text-slate-500">
+                                    Username
+                                    <input type="text" name="username" required class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300" placeholder="name@digichefs.com">
+                                </label>
+                                <label class="block text-sm font-bold text-slate-500">
+                                    Password
+                                    <input type="text" name="password" required class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300" placeholder="Enter password">
+                                </label>
+                                <div class="grid gap-4 sm:grid-cols-2">
+                                    <label class="block text-sm font-bold text-slate-500">
+                                        Role
+                                        <select name="role" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300">
+                                            <option value="USER">USER</option>
+                                            <option value="ADMIN">ADMIN</option>
+                                        </select>
+                                    </label>
+                                    <label class="block text-sm font-bold text-slate-500">
+                                        Tool
+                                        <select name="tool_id" required class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300">
+                                            <option value="">Select tool</option>
+                                            <?php foreach ($tools as $toolOption): ?>
+                                                <option value="<?= h($toolOption['id']) ?>" <?= $selectedToolId === (int) $toolOption['id'] ? 'selected' : '' ?>><?= h($toolOption['tool_name']) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+                                </div>
+                                <button type="submit" class="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition-soft hover:bg-indigo-700">
+                                    Create User
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="rounded-3xl bg-rose-50 p-5">
+                            <h4 class="text-base font-extrabold text-slate-900">Delete Account</h4>
+                            <form action="user_management.php" method="post" class="mt-4 space-y-4">
+                                <input type="hidden" name="action" value="delete">
+                                <label class="block text-sm font-bold text-slate-500">
+                                    Username
+                                    <input type="text" name="username" required class="mt-2 w-full rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-rose-300" placeholder="Exact username">
+                                </label>
+                                <button type="submit" class="w-full rounded-2xl bg-rose-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-rose-600/20 transition-soft hover:bg-rose-700">
+                                    Delete User
+                                </button>
+                            </form>
+                            <p class="mt-3 text-xs leading-6 text-rose-600">Deletion works for both USER and ADMIN roles. Use the exact username.</p>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                    <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                        <div>
+                            <h3 class="heading-font text-[1.3rem] font-bold text-slate-900">User Directory</h3>
+                            <p class="mt-1 text-sm text-slate-400">Users, credentials, role mapping, and system-level usage totals</p>
+                        </div>
+                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500"><?= count($users) ?> users</span>
+                    </div>
+                    <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                        Usage is shown from the mapped system totals because logs are stored by <code>tool_name</code>, not by <code>user_id</code>.
+                    </div>
+                    <div class="nice-scroll overflow-x-auto">
+                        <table class="mt-4 w-full min-w-[980px] text-left text-[13px]">
+                            <thead>
+                                <tr class="border-b border-slate-100 text-[11px] uppercase tracking-[0.16em] text-slate-400">
+                                    <th class="py-3 font-bold">User</th>
+                                    <th class="py-3 font-bold">Password</th>
+                                    <th class="py-3 font-bold">Role</th>
+                                    <th class="py-3 font-bold">System</th>
+                                    <th class="py-3 text-right font-bold">Uses</th>
+                                    <th class="py-3 text-right font-bold">Tokens</th>
+                                    <th class="py-3 text-right font-bold">Spend</th>
+                                    <th class="py-3 font-bold">Last Activity</th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <?php foreach ($users as $user): ?>
+                                    <tr class="hover:bg-slate-50/60">
+                                        <td class="py-3.5">
+                                            <div class="text-sm font-bold text-slate-900"><?= h($user['username']) ?></div>
+                                            <div class="text-[11px] text-slate-400">ID #<?= h($user['id']) ?></div>
+                                        </td>
+                                        <td class="py-3.5">
+                                            <code class="rounded-xl bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-700"><?= h($user['password']) ?></code>
+                                        </td>
+                                        <td class="py-3.5">
+                                            <span class="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-white"><?= h($user['role']) ?></span>
+                                        </td>
+                                        <td class="py-3.5">
+                                            <div class="text-sm font-bold text-slate-900"><?= h($user['tool_name'] ?: 'Unassigned') ?></div>
+                                            <div class="text-[11px] text-slate-400">tool_id: <?= h($user['tool_id'] ?: '-') ?></div>
+                                        </td>
+                                        <td class="py-3.5 text-right font-semibold text-slate-700"><?= number_format((int) $user['system_request_count']) ?></td>
+                                        <td class="py-3.5 text-right font-semibold text-slate-700"><?= compact_number($user['system_total_tokens']) ?></td>
+                                        <td class="py-3.5 text-right font-extrabold text-indigo-600"><?= money($user['system_total_cost']) ?></td>
+                                        <td class="py-3.5 text-[12px] text-slate-500"><?= h($user['last_activity'] ?: 'No activity') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
             </section>
 
             <section class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
