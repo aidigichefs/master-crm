@@ -720,7 +720,8 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                 <div class="mt-6 grid gap-6 xl:grid-cols-2">
                     <article class="rounded-3xl bg-slate-50 p-6">
                         <h4 class="text-base font-extrabold text-slate-900">Create Account</h4>
-                        <form action="create_user.php" method="post" class="mt-5 grid gap-4 md:grid-cols-2">
+                        <div id="create-user-status" class="mt-4 hidden rounded-2xl px-4 py-3 text-sm font-semibold"></div>
+                        <form id="create-user-form" action="create_user.php" method="post" class="mt-5 grid gap-4 md:grid-cols-2">
                             <label class="block text-sm font-bold text-slate-500 md:col-span-2">
                                 Username
                                 <input type="text" name="username" required class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300" placeholder="name@digichefs.com">
@@ -755,7 +756,8 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
 
                     <article class="rounded-3xl bg-rose-50 p-6">
                         <h4 class="text-base font-extrabold text-slate-900">Delete Account</h4>
-                        <form action="user_management.php" method="post" class="mt-5 space-y-4">
+                        <div id="delete-user-status" class="mt-4 hidden rounded-2xl px-4 py-3 text-sm font-semibold"></div>
+                        <form id="delete-user-form" action="user_management.php" method="post" class="mt-5 space-y-4">
                             <input type="hidden" name="action" value="delete">
                             <label class="block text-sm font-bold text-slate-500">
                                 Username
@@ -783,7 +785,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                         Usage is shown from the mapped system totals because logs are stored by <code>tool_name</code>, not by <code>user_id</code>.
                     </div>
                     <div class="nice-scroll overflow-x-auto">
-                        <table class="mt-4 w-full min-w-[860px] text-left text-[12px]">
+                        <table class="mt-4 w-full min-w-[980px] text-left text-[12px]">
                             <thead>
                                 <tr class="border-b border-slate-100 text-[11px] uppercase tracking-[0.16em] text-slate-400">
                                     <th class="py-3 font-bold">User</th>
@@ -803,8 +805,9 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                                         <div class="text-[13px] font-bold text-slate-900"><?= h($user['username']) ?></div>
                                             <div class="text-[11px] text-slate-400">ID #<?= h($user['id']) ?></div>
                                         </td>
-                                        <td class="py-3.5">
-                                            <code class="rounded-xl bg-slate-100 px-2 py-1.5 text-[10px] font-bold text-slate-700"><?= h($user['password']) ?></code>
+                                        <td class="py-3.5 min-w-[170px]">
+                                            <div class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Stored Password</div>
+                                            <code class="mt-2 inline-block break-all rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-700"><?= h($user['password']) ?></code>
                                         </td>
                                         <td class="py-3.5">
                                             <span class="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-white"><?= h($user['role']) ?></span>
@@ -1034,6 +1037,82 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                 }
             }
         });
+
+        function setFormStatus(elementId, type, message) {
+            const statusBox = document.getElementById(elementId);
+            if (!statusBox) {
+                return;
+            }
+
+            statusBox.classList.remove(
+                'hidden',
+                'bg-emerald-50',
+                'text-emerald-700',
+                'border',
+                'border-emerald-200',
+                'bg-rose-50',
+                'text-rose-700',
+                'border-rose-200'
+            );
+
+            if (type === 'success') {
+                statusBox.classList.add('bg-emerald-50', 'text-emerald-700', 'border', 'border-emerald-200');
+            } else {
+                statusBox.classList.add('bg-rose-50', 'text-rose-700', 'border', 'border-rose-200');
+            }
+
+            statusBox.textContent = message;
+        }
+
+        async function submitDashboardForm(formId, statusId) {
+            const form = document.getElementById(formId);
+            if (!form) {
+                return;
+            }
+
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault();
+
+                const submitButton = form.querySelector('button[type="submit"]');
+                const originalButtonText = submitButton ? submitButton.innerHTML : '';
+
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.classList.add('opacity-70', 'cursor-not-allowed');
+                    submitButton.innerHTML = 'Processing...';
+                }
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.status) {
+                        setFormStatus(statusId, 'success', result.message || 'Action completed successfully.');
+                        form.reset();
+                        window.setTimeout(() => {
+                            window.location.reload();
+                        }, 900);
+                    } else {
+                        setFormStatus(statusId, 'error', result.message || 'Something went wrong.');
+                    }
+                } catch (error) {
+                    setFormStatus(statusId, 'error', 'Request failed. Please try again.');
+                }
+
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('opacity-70', 'cursor-not-allowed');
+                    submitButton.innerHTML = originalButtonText;
+                }
+            });
+        }
+
+        submitDashboardForm('create-user-form', 'create-user-status');
+        submitDashboardForm('delete-user-form', 'delete-user-status');
     </script>
 </body>
 </html>
