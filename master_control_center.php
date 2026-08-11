@@ -341,17 +341,8 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                 </svg>
             </button>
         </div>
-        <div class="mb-10 flex items-center gap-4">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/20">
-                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-            </div>
-            <div>
-                <div class="flex items-center gap-2">
-                    <img src="2019_dc-logo_low.png" alt="DigiChefs" class="h-8 w-auto object-contain">
-                </div>
-            </div>
+        <div class="mb-8 flex items-center">
+            <img src="2019_dc-logo_low.png" alt="DigiChefs" class="h-10 w-auto object-contain">
         </div>
 
         <nav class="flex-1 space-y-2 px-1">
@@ -401,13 +392,6 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
             </a>
         </nav>
 
-        <div class="mt-auto rounded-[28px] border border-indigo-100/50 bg-gradient-to-br from-indigo-50 to-slate-50 p-5">
-            <p class="text-sm font-bold text-indigo-900">Need assistance?</p>
-            <p class="mt-2 text-sm leading-6 text-indigo-500">Feel free to contact the administrator.</p>
-            <a href="mailto:sajan.m@digichefs.com" class="mt-5 block rounded-2xl bg-indigo-600 px-4 py-2.5 text-center text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition-soft hover:bg-indigo-700">
-                Get support
-            </a>
-        </div>
     </aside>
 
     <div class="min-h-screen">
