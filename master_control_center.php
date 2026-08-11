@@ -327,9 +327,16 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
 <body class="h-full text-slate-800 antialiased">
     <div class="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.08),_transparent_22%),radial-gradient(circle_at_right,_rgba(45,212,191,0.08),_transparent_18%)]"></div>
 
-    <div id="mobile-sidebar-backdrop" class="fixed inset-0 z-40 hidden bg-slate-900/40 backdrop-blur-sm lg:hidden" onclick="toggleMobileSidebar()"></div>
+    <div id="mobile-sidebar-backdrop" class="fixed inset-0 z-40 hidden bg-slate-900/40 backdrop-blur-sm" onclick="toggleMobileSidebar()"></div>
 
-    <aside id="sidebar-container" class="fixed inset-y-0 left-0 z-50 flex w-[324px] flex-col border-r border-slate-200/70 bg-white px-7 py-6 transition-transform duration-300 -translate-x-full lg:translate-x-0">
+    <aside id="sidebar-container" class="fixed inset-y-0 left-0 z-50 flex w-[324px] max-w-[88vw] flex-col border-r border-slate-200/70 bg-white px-7 py-6 transition-transform duration-300 -translate-x-full">
+        <div class="mb-6 flex items-center justify-end">
+            <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-soft hover:text-slate-900" onclick="toggleMobileSidebar()" aria-label="Close menu">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
         <div class="mb-10 flex items-center gap-4">
             <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/20">
                 <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -400,10 +407,10 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
         </div>
     </aside>
 
-    <div class="min-h-screen lg:pl-[324px]">
+    <div class="min-h-screen">
         <header class="sticky top-0 z-30 flex h-[92px] items-center justify-between border-b border-slate-200/60 bg-[#f4f5f7]/90 px-8 backdrop-blur-md">
             <div class="flex items-center gap-4">
-                <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm lg:hidden" onclick="toggleMobileSidebar()">
+                <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-soft hover:text-slate-900" onclick="toggleMobileSidebar()" aria-label="Open menu">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
