@@ -329,7 +329,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
 
     <div id="mobile-sidebar-backdrop" class="fixed inset-0 z-40 hidden bg-slate-900/40 backdrop-blur-sm" onclick="toggleMobileSidebar()"></div>
 
-    <aside id="sidebar-container" class="fixed inset-y-0 left-0 z-50 flex w-[324px] max-w-[88vw] flex-col border-r border-slate-200/70 bg-white px-7 py-6 transition-transform duration-300 -translate-x-full">
+    <aside id="sidebar-container" class="fixed inset-y-0 left-0 z-50 flex w-[286px] max-w-[86vw] flex-col border-r border-slate-200/70 bg-white px-5 py-5 transition-transform duration-300 -translate-x-full">
         <div class="mb-6 flex items-center justify-end">
             <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-soft hover:text-slate-900" onclick="toggleMobileSidebar()" aria-label="Close menu">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -338,28 +338,28 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
             </button>
         </div>
         <div class="mb-10 flex items-center gap-4">
-            <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/20">
-                <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/20">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
             </div>
             <div>
                 <div class="flex items-center gap-2">
-                    <span class="heading-font text-[2rem] font-bold tracking-tight text-slate-900">DigiChefs</span>
-                    <span class="rounded-xl bg-violet-50 px-2 py-1 text-sm font-bold text-violet-500">AI</span>
+                    <span class="heading-font text-[1.7rem] font-bold tracking-tight text-slate-900">DigiChefs</span>
+                    <span class="rounded-xl bg-violet-50 px-2 py-1 text-xs font-bold text-violet-500">AI</span>
                 </div>
             </div>
         </div>
 
         <nav class="flex-1 space-y-2 px-1">
-            <a href="#analytics" class="nav-active flex items-center gap-4 rounded-2xl px-5 py-4 text-[1.05rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
+            <a href="#analytics" class="nav-active flex items-center gap-3 rounded-2xl px-4 py-3 text-[0.95rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
                 <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
                 </svg>
                 <span>Analytics</span>
             </a>
 
-            <a href="#systems" class="flex items-center gap-4 rounded-2xl px-5 py-4 text-[1.05rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
+            <a href="#systems" class="flex items-center gap-3 rounded-2xl px-4 py-3 text-[0.95rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
                 <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
@@ -367,14 +367,14 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                 <span>System Split</span>
             </a>
 
-            <a href="#usage-dynamics" class="flex items-center gap-4 rounded-2xl px-5 py-4 text-[1.05rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
+            <a href="#usage-dynamics" class="flex items-center gap-3 rounded-2xl px-4 py-3 text-[0.95rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
                 <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
                 <span>Daily Dynamics</span>
             </a>
 
-            <a href="#data-tables" class="flex items-center gap-4 rounded-2xl px-5 py-4 text-[1.05rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
+            <a href="#data-tables" class="flex items-center gap-3 rounded-2xl px-4 py-3 text-[0.95rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
                 <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
@@ -383,14 +383,14 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
 
             <div class="my-5 h-px bg-slate-100"></div>
 
-            <a href="#filters" class="flex items-center gap-4 rounded-2xl px-5 py-4 text-[1.05rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
+            <a href="#filters" class="flex items-center gap-3 rounded-2xl px-4 py-3 text-[0.95rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
                 <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                 </svg>
                 <span>Filter Panel</span>
             </a>
 
-            <a href="#directory" class="flex items-center gap-4 rounded-2xl px-5 py-4 text-[1.05rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
+            <a href="#directory" class="flex items-center gap-3 rounded-2xl px-4 py-3 text-[0.95rem] text-slate-500 transition-soft hover:bg-slate-50 hover:text-slate-900">
                 <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5V4H2v16h5m10 0v-2a4 4 0 00-4-4H9a4 4 0 00-4 4v2m12 0H7m10-10a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
@@ -401,21 +401,21 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
         <div class="mt-auto rounded-[28px] border border-indigo-100/50 bg-gradient-to-br from-indigo-50 to-slate-50 p-5">
             <p class="text-sm font-bold text-indigo-900">Need assistance?</p>
             <p class="mt-2 text-sm leading-6 text-indigo-500">Feel free to contact the administrator.</p>
-            <a href="mailto:sajan.m@digichefs.com" class="mt-5 block rounded-2xl bg-indigo-600 px-4 py-3 text-center text-base font-bold text-white shadow-lg shadow-indigo-600/20 transition-soft hover:bg-indigo-700">
+            <a href="mailto:sajan.m@digichefs.com" class="mt-5 block rounded-2xl bg-indigo-600 px-4 py-2.5 text-center text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition-soft hover:bg-indigo-700">
                 Get support
             </a>
         </div>
     </aside>
 
     <div class="min-h-screen">
-        <header class="sticky top-0 z-30 flex h-[92px] items-center justify-between border-b border-slate-200/60 bg-[#f4f5f7]/90 px-8 backdrop-blur-md">
+        <header class="sticky top-0 z-30 flex h-[76px] items-center justify-between border-b border-slate-200/60 bg-[#f4f5f7]/90 px-6 backdrop-blur-md">
             <div class="flex items-center gap-4">
                 <button type="button" class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition-soft hover:text-slate-900" onclick="toggleMobileSidebar()" aria-label="Open menu">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
-                <h1 class="heading-font text-4xl font-bold tracking-tight text-slate-900">Analytics</h1>
+                <h1 class="heading-font text-3xl font-bold tracking-tight text-slate-900">Analytics</h1>
                 <div class="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-500 shadow-sm sm:flex">
                     <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -431,12 +431,12 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                 </div>
                 <div class="hidden h-6 w-px bg-slate-200 sm:block"></div>
                 <div class="flex items-center gap-3">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-extrabold text-white shadow-md shadow-indigo-500/20">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-extrabold text-white shadow-md shadow-indigo-500/20">
                         SM
                     </div>
                     <div class="hidden text-left sm:block">
-                        <p class="text-base font-bold text-slate-900">Sajan M.</p>
-                        <p class="text-sm font-medium text-slate-400">DigiChefs Team</p>
+                        <p class="text-sm font-bold text-slate-900">Sajan M.</p>
+                        <p class="text-xs font-medium text-slate-400">DigiChefs Team</p>
                     </div>
                 </div>
             </div>
@@ -445,17 +445,17 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
         <main class="space-y-6 overflow-x-hidden px-5 py-6 lg:px-7" id="analytics">
             <section class="grid gap-6 xl:grid-cols-4">
                 <div class="grid gap-6 md:grid-cols-2 xl:col-span-2">
-                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                    <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Requests</span>
-                            <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-500">
-                                <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-500">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                 </svg>
                             </div>
                         </div>
                         <div class="mt-6">
-                            <p class="heading-font text-4xl font-bold tracking-tight text-slate-900 xl:text-[2.75rem]"><?= compact_number($summary['total_requests']) ?></p>
+                            <p class="heading-font text-[2rem] font-bold tracking-tight text-slate-900 xl:text-[2.35rem]"><?= compact_number($summary['total_requests']) ?></p>
                             <div class="mt-3 flex items-center gap-2 text-sm font-bold text-emerald-500">
                                 <span>↑ Live Log</span>
                                 <span class="text-slate-400">total requests</span>
@@ -463,17 +463,17 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                         </div>
                     </article>
 
-                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                    <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Tokens</span>
-                            <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-violet-50 text-violet-500">
-                                <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-3xl bg-violet-50 text-violet-500">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 12h10M7 17h10M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />
                                 </svg>
                             </div>
                         </div>
                         <div class="mt-6">
-                            <p class="heading-font text-4xl font-bold tracking-tight text-slate-900 xl:text-[2.75rem]"><?= compact_number($summary['total_tokens']) ?></p>
+                            <p class="heading-font text-[2rem] font-bold tracking-tight text-slate-900 xl:text-[2.35rem]"><?= compact_number($summary['total_tokens']) ?></p>
                             <div class="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold">
                                 <span class="rounded-lg bg-indigo-50 px-2 py-1 text-indigo-500">Avg: <?= number_format($avgTokens, 0) ?></span>
                                 <span class="text-slate-400">tokens/request</span>
@@ -481,32 +481,32 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                         </div>
                     </article>
 
-                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                    <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Images</span>
-                            <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-amber-50 text-amber-500">
-                                <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-3xl bg-amber-50 text-amber-500">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2 1.586-1.586a2 2 0 012.828 0L20 14m-6-10h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
                             </div>
                         </div>
                         <div class="mt-6">
-                            <p class="heading-font text-4xl font-bold tracking-tight text-slate-900 xl:text-[2.75rem]"><?= compact_number($summary['total_images']) ?></p>
+                            <p class="heading-font text-[2rem] font-bold tracking-tight text-slate-900 xl:text-[2.35rem]"><?= compact_number($summary['total_images']) ?></p>
                             <div class="mt-3 text-sm font-bold text-slate-400">generated media items</div>
                         </div>
                     </article>
 
-                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                    <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Estimated Cost</span>
-                            <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-500">
-                                <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-500">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2m0 0c-1.657 0-3-.895-3-2m6 0c0 1.105-1.343 2-3 2" />
                                 </svg>
                             </div>
                         </div>
                         <div class="mt-6">
-                            <p class="heading-font text-4xl font-bold tracking-tight text-slate-900 xl:text-[2.75rem]"><?= money($summary['total_cost']) ?></p>
+                            <p class="heading-font text-[2rem] font-bold tracking-tight text-slate-900 xl:text-[2.2rem]"><?= money($summary['total_cost']) ?></p>
                             <div class="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold">
                                 <span class="rounded-lg bg-emerald-50 px-2 py-1 text-emerald-600">Avg: <?= money($avgCost) ?></span>
                                 <span class="text-slate-400">per request</span>
@@ -515,7 +515,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                     </article>
                 </div>
 
-                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium" id="systems">
+                <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium" id="systems">
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <h3 class="heading-font text-[1.15rem] font-bold text-slate-900 xl:text-[1.3rem]">System Spend Share</h3>
@@ -540,7 +540,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                     </div>
                 </article>
 
-                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium">
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <h3 class="heading-font text-[1.15rem] font-bold text-slate-900 xl:text-[1.3rem]">Token Volume Split</h3>
@@ -563,7 +563,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
             </section>
 
             <section class="grid gap-6 xl:grid-cols-[1.45fr_0.45fr]" id="usage-dynamics">
-                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium">
                     <div class="flex items-center justify-between gap-4">
                         <div>
                             <h3 class="heading-font text-[2rem] font-bold text-slate-900">Usage & Spending Dynamics</h3>
@@ -573,39 +573,39 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                             Calendar
                         </div>
                     </div>
-                    <div class="mt-6 h-[380px]">
+                    <div class="mt-5 h-[300px] xl:h-[320px]">
                         <canvas id="chart-dynamics"></canvas>
                     </div>
                 </article>
 
                 <div class="space-y-6">
-                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                    <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium">
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <p class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Input Spend</p>
-                                <p class="mt-4 heading-font text-4xl font-bold text-slate-900"><?= money($summary['input_cost']) ?></p>
-                                <p class="mt-2 text-lg text-slate-400">Input token expense</p>
+                                <p class="mt-3 heading-font text-[1.8rem] font-bold text-slate-900"><?= money($summary['input_cost']) ?></p>
+                                <p class="mt-1 text-sm text-slate-400">Input token expense</p>
                             </div>
-                            <div class="flex h-16 w-16 items-center justify-center rounded-full border-4 border-indigo-100 text-base font-extrabold text-indigo-500">
+                            <div class="flex h-14 w-14 items-center justify-center rounded-full border-4 border-indigo-100 text-sm font-extrabold text-indigo-500">
                                 <?= h($inputShare) ?>%
                             </div>
                         </div>
                     </article>
 
-                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                    <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium">
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <p class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Output Spend</p>
-                                <p class="mt-4 heading-font text-4xl font-bold text-slate-900"><?= money($summary['output_cost']) ?></p>
-                                <p class="mt-2 text-lg text-slate-400">Output + media expense</p>
+                                <p class="mt-3 heading-font text-[1.8rem] font-bold text-slate-900"><?= money($summary['output_cost']) ?></p>
+                                <p class="mt-1 text-sm text-slate-400">Output + media expense</p>
                             </div>
-                            <div class="flex h-16 w-16 items-center justify-center rounded-full border-4 border-emerald-100 text-base font-extrabold text-emerald-500">
+                            <div class="flex h-14 w-14 items-center justify-center rounded-full border-4 border-emerald-100 text-sm font-extrabold text-emerald-500">
                                 <?= h($outputShare) ?>%
                             </div>
                         </div>
                     </article>
 
-                    <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium" id="filters">
+                    <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium" id="filters">
                         <p class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Filter Panel</p>
                         <form method="get" class="mt-5 space-y-4">
                             <label class="block text-sm font-bold text-slate-500">
@@ -617,7 +617,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                                 <input type="date" name="to" value="<?= h($to) ?>" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700 outline-none focus:border-indigo-300 focus:bg-white">
                             </label>
                             <input type="hidden" name="tool_id" value="<?= h($selectedToolId) ?>">
-                            <button type="submit" class="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-base font-bold text-white shadow-lg shadow-indigo-600/20 transition-soft hover:bg-indigo-700">
+                            <button type="submit" class="w-full rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition-soft hover:bg-indigo-700">
                                 Apply Filter
                             </button>
                             <p class="text-sm text-slate-400">Current range: <?= h($rangeLabel) ?></p>
@@ -626,7 +626,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                 </div>
             </section>
 
-            <section class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium" id="tool-selection">
+            <section class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium" id="tool-selection">
                 <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
                     <div>
                         <h3 class="heading-font text-[1.55rem] font-bold text-slate-900">Tool Selection</h3>
@@ -645,7 +645,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
             </section>
 
             <section class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]" id="data-tables">
-                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium">
                     <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
                         <div>
                             <h3 class="heading-font text-[1.55rem] font-bold text-slate-900">System Breakdown Table</h3>
@@ -691,7 +691,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                     </div>
                 </article>
 
-                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium">
                     <div class="border-b border-slate-100 pb-5">
                         <h3 class="heading-font text-[1.55rem] font-bold text-slate-900">Coverage Snapshot</h3>
                         <p class="mt-1 text-sm text-slate-400">What this master page includes at a glance</p>
@@ -699,24 +699,24 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                     <div class="mt-5 space-y-4">
                         <div class="rounded-3xl bg-slate-50 p-5">
                             <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-400">Total Users</p>
-                            <p class="mt-3 heading-font text-4xl font-bold text-slate-900"><?= number_format((int) $userSummary['total_users']) ?></p>
+                            <p class="mt-2 heading-font text-[1.9rem] font-bold text-slate-900"><?= number_format((int) $userSummary['total_users']) ?></p>
                             <p class="mt-2 text-sm text-slate-400">Every login from <code>user_accounts</code>.</p>
                         </div>
                         <div class="rounded-3xl bg-slate-50 p-5">
                             <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-400">Admins / Users</p>
-                            <p class="mt-3 heading-font text-4xl font-bold text-slate-900"><?= number_format((int) $userSummary['total_admins']) ?> / <?= number_format((int) $userSummary['total_standard_users']) ?></p>
+                            <p class="mt-2 heading-font text-[1.9rem] font-bold text-slate-900"><?= number_format((int) $userSummary['total_admins']) ?> / <?= number_format((int) $userSummary['total_standard_users']) ?></p>
                             <p class="mt-2 text-sm text-slate-400">Role split from the current login table.</p>
                         </div>
                         <div class="rounded-3xl bg-slate-50 p-5">
                             <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-400">Recent Logs Loaded</p>
-                            <p class="mt-3 heading-font text-4xl font-bold text-slate-900"><?= number_format(count($logs)) ?></p>
+                            <p class="mt-2 heading-font text-[1.9rem] font-bold text-slate-900"><?= number_format(count($logs)) ?></p>
                             <p class="mt-2 text-sm text-slate-400">Last 100 rows from <code>ai_usage_logs</code>.</p>
                         </div>
                     </div>
                 </article>
             </section>
 
-            <section class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium" id="user-management">
+            <section class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium" id="user-management">
                 <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
                     <div>
                         <h3 class="heading-font text-[1.45rem] font-bold text-slate-900">User Management</h3>
@@ -780,7 +780,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
             </section>
 
             <section class="grid gap-6 xl:grid-cols-1" id="directory">
-                <article class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+                <article class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium">
                     <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
                         <div>
                             <h3 class="heading-font text-[1.3rem] font-bold text-slate-900">User Directory</h3>
@@ -835,16 +835,16 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                 </article>
             </section>
 
-            <section class="rounded-[32px] border border-slate-200/60 bg-white p-7 shadow-premium">
+            <section class="rounded-[28px] border border-slate-200/60 bg-white p-5 shadow-premium">
                 <div class="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
                     <div>
-                        <h3 class="heading-font text-[1.7rem] font-bold text-slate-900">Latest Usage Logs</h3>
+                        <h3 class="heading-font text-[1.35rem] font-bold text-slate-900">Latest Usage Logs</h3>
                         <p class="mt-1 text-sm text-slate-400">Recent log activity for the selected date range</p>
                     </div>
                     <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500"><?= count($logs) ?> logs</span>
                 </div>
                 <div class="nice-scroll overflow-x-auto max-h-[420px] overflow-y-auto">
-                    <table class="mt-4 w-full min-w-[1220px] text-left text-sm">
+                    <table class="mt-4 w-full min-w-[1080px] text-left text-[13px]">
                         <thead class="sticky top-0 bg-white">
                             <tr class="border-b border-slate-100 text-xs uppercase tracking-[0.18em] text-slate-400">
                                 <th class="py-3 font-bold">ID</th>
