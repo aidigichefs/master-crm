@@ -10,8 +10,8 @@ function h($value) {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
-function money($value) {
-    return '$' . number_format((float) $value, 6);
+function inr($value, $usdToInrRate) {
+    return 'Rs. ' . number_format(((float) $value) * (float) $usdToInrRate, 2);
 }
 
 function compact_number($value) {
@@ -31,6 +31,10 @@ function compact_number($value) {
 $from = trim($_GET['from'] ?? date('Y-m-01'));
 $to = trim($_GET['to'] ?? date('Y-m-d'));
 $selectedToolId = max(0, (int) ($_GET['tool_id'] ?? 0));
+$usdToInrRate = (float) ($_GET['usd_inr'] ?? 95.40);
+if ($usdToInrRate <= 0) {
+    $usdToInrRate = 95.40;
+}
 
 $stmt = $pdo->query("
     SELECT
@@ -269,7 +273,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
 <html lang="en" class="h-full bg-[#f4f5f7]">
 <head>
     <meta charset="UTF-8">
-    <title>Master Control Center | DigiChefs AI</title>
+    <title>Master Control Center | DigiChefs</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -345,8 +349,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
             </div>
             <div>
                 <div class="flex items-center gap-2">
-                    <span class="heading-font text-[1.7rem] font-bold tracking-tight text-slate-900">DigiChefs</span>
-                    <span class="rounded-xl bg-violet-50 px-2 py-1 text-xs font-bold text-violet-500">AI</span>
+                    <img src="2019_dc-logo_low.png" alt="DigiChefs" class="h-8 w-auto object-contain">
                 </div>
             </div>
         </div>
@@ -506,10 +509,10 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                             </div>
                         </div>
                         <div class="mt-6">
-                            <p class="heading-font text-[2rem] font-bold tracking-tight text-slate-900 xl:text-[2.2rem]"><?= money($summary['total_cost']) ?></p>
+                            <p class="heading-font text-[2rem] font-bold tracking-tight text-slate-900 xl:text-[2.2rem]"><?= inr($summary['total_cost'], $usdToInrRate) ?></p>
                             <div class="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold">
-                                <span class="rounded-lg bg-emerald-50 px-2 py-1 text-emerald-600">Avg: <?= money($avgCost) ?></span>
-                                <span class="text-slate-400">per request</span>
+                                <span class="rounded-lg bg-emerald-50 px-2 py-1 text-emerald-600">Avg: <?= inr($avgCost, $usdToInrRate) ?></span>
+                                <span class="text-slate-400">per request in INR</span>
                             </div>
                         </div>
                     </article>
@@ -567,7 +570,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                     <div class="flex items-center justify-between gap-4">
                         <div>
                             <h3 class="heading-font text-[2rem] font-bold text-slate-900">Usage & Spending Dynamics</h3>
-                            <p class="mt-2 text-[1.1rem] text-slate-400">Daily spending (USD) and request volume plotted chronologically</p>
+                            <p class="mt-2 text-[1.1rem] text-slate-400">Daily spending (INR) and request volume plotted chronologically</p>
                         </div>
                         <div class="hidden rounded-full border border-slate-200 px-4 py-2 text-base font-semibold text-slate-500 sm:block">
                             Calendar
@@ -583,7 +586,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <p class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Input Spend</p>
-                                <p class="mt-3 heading-font text-[1.8rem] font-bold text-slate-900"><?= money($summary['input_cost']) ?></p>
+                                <p class="mt-3 heading-font text-[1.8rem] font-bold text-slate-900"><?= inr($summary['input_cost'], $usdToInrRate) ?></p>
                                 <p class="mt-1 text-sm text-slate-400">Input token expense</p>
                             </div>
                             <div class="flex h-14 w-14 items-center justify-center rounded-full border-4 border-indigo-100 text-sm font-extrabold text-indigo-500">
@@ -596,7 +599,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <p class="text-xs font-extrabold uppercase tracking-[0.2em] text-slate-400">Output Spend</p>
-                                <p class="mt-3 heading-font text-[1.8rem] font-bold text-slate-900"><?= money($summary['output_cost']) ?></p>
+                                <p class="mt-3 heading-font text-[1.8rem] font-bold text-slate-900"><?= inr($summary['output_cost'], $usdToInrRate) ?></p>
                                 <p class="mt-1 text-sm text-slate-400">Output + media expense</p>
                             </div>
                             <div class="flex h-14 w-14 items-center justify-center rounded-full border-4 border-emerald-100 text-sm font-extrabold text-emerald-500">
@@ -620,7 +623,11 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                             <button type="submit" class="w-full rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition-soft hover:bg-indigo-700">
                                 Apply Filter
                             </button>
-                            <p class="text-sm text-slate-400">Current range: <?= h($rangeLabel) ?></p>
+                            <label class="block text-sm font-bold text-slate-500">
+                                USD to INR
+                                <input type="number" step="0.01" min="0" name="usd_inr" value="<?= h($usdToInrRate) ?>" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300 focus:bg-white">
+                            </label>
+                            <p class="text-sm text-slate-400">Current range: <?= h($rangeLabel) ?> • Rate: <?= h(number_format($usdToInrRate, 2)) ?></p>
                         </form>
                     </article>
                 </div>
@@ -635,9 +642,9 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                     <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500"><?= $selectedToolName !== '' ? h($selectedToolName) : 'All Systems' ?></span>
                 </div>
                 <div class="mt-5 flex flex-wrap gap-3">
-                    <a href="?from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>" class="rounded-2xl px-5 py-3 text-sm font-bold transition-soft <?= $selectedToolId === 0 ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/15' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' ?>">All Systems</a>
+                    <a href="?from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>&usd_inr=<?= urlencode($usdToInrRate) ?>" class="rounded-2xl px-5 py-3 text-sm font-bold transition-soft <?= $selectedToolId === 0 ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/15' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' ?>">All Systems</a>
                     <?php foreach ($tools as $toolTab): ?>
-                        <a href="?from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>&tool_id=<?= urlencode($toolTab['id']) ?>" class="rounded-2xl px-5 py-3 text-sm font-bold transition-soft <?= $selectedToolId === (int) $toolTab['id'] ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' ?>">
+                        <a href="?from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>&tool_id=<?= urlencode($toolTab['id']) ?>&usd_inr=<?= urlencode($usdToInrRate) ?>" class="rounded-2xl px-5 py-3 text-sm font-bold transition-soft <?= $selectedToolId === (int) $toolTab['id'] ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' ?>">
                             <?= h($toolTab['tool_name']) ?>
                         </a>
                     <?php endforeach; ?>
@@ -683,7 +690,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                                         <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $row['request_count']) ?></td>
                                         <td class="py-4 text-right font-semibold text-slate-700"><?= compact_number($row['total_tokens']) ?></td>
                                         <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $row['total_images']) ?></td>
-                                        <td class="py-4 text-right font-extrabold text-indigo-600"><?= money($row['total_cost']) ?></td>
+                                        <td class="py-4 text-right font-extrabold text-indigo-600"><?= inr($row['total_cost'], $usdToInrRate) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -825,7 +832,7 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                                         </td>
                                         <td class="py-3.5 text-right font-semibold text-slate-700"><?= number_format((int) $user['system_request_count']) ?></td>
                                         <td class="py-3.5 text-right font-semibold text-slate-700"><?= compact_number($user['system_total_tokens']) ?></td>
-                                        <td class="py-3.5 text-right font-extrabold text-indigo-600"><?= money($user['system_total_cost']) ?></td>
+                                        <td class="py-3.5 text-right font-extrabold text-indigo-600"><?= inr($user['system_total_cost'], $usdToInrRate) ?></td>
                                         <td class="py-3.5 text-[12px] text-slate-500"><?= h($user['last_activity'] ?: 'No activity') ?></td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -873,9 +880,9 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                                     <td class="py-4 text-slate-500"><?= h($log['model_name']) ?></td>
                                     <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $log['total_tokens']) ?></td>
                                     <td class="py-4 text-right font-semibold text-slate-700"><?= number_format((int) $log['image_count']) ?></td>
-                                    <td class="py-4 text-right font-semibold text-slate-700"><?= money($log['input_cost']) ?></td>
-                                    <td class="py-4 text-right font-semibold text-slate-700"><?= money($log['output_cost']) ?></td>
-                                    <td class="py-4 text-right font-extrabold text-indigo-600"><?= money($log['total_cost']) ?></td>
+                                    <td class="py-4 text-right font-semibold text-slate-700"><?= inr($log['input_cost'], $usdToInrRate) ?></td>
+                                    <td class="py-4 text-right font-semibold text-slate-700"><?= inr($log['output_cost'], $usdToInrRate) ?></td>
+                                    <td class="py-4 text-right font-extrabold text-indigo-600"><?= inr($log['total_cost'], $usdToInrRate) ?></td>
                                     <td class="py-4">
                                         <?php $statusClass = $log['status'] === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'; ?>
                                         <span class="inline-flex rounded-full px-3 py-1 text-xs font-extrabold <?= $statusClass ?>"><?= h($log['status']) ?></span>
