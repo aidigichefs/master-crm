@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/db.php';
+session_start();
 
 header_remove('Content-Type');
 header('Content-Type: text/html; charset=UTF-8');
@@ -27,6 +28,94 @@ function compact_number($value) {
 
     return number_format($value);
 }
+
+$adminLoginUsername = 'digi';
+$adminPasswordHash = '$2y$10$OXzAR7p5dSUgeh10H6tDFuY/djJ6fNGZqVxgs1M08UxjzJP8uYuB6';
+
+if (isset($_GET['logout']) && $_GET['logout'] === '1') {
+    $_SESSION = [];
+    session_destroy();
+    header('Location: master_control_center.php');
+    exit;
+}
+
+$loginError = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['auth_action'] ?? '') === 'admin_login') {
+    $submittedUsername = trim($_POST['admin_username'] ?? '');
+    $submittedPassword = trim($_POST['admin_password'] ?? '');
+
+    if ($submittedUsername === $adminLoginUsername && password_verify($submittedPassword, $adminPasswordHash)) {
+        $_SESSION['mastercrm_admin_logged_in'] = true;
+        $_SESSION['mastercrm_admin_username'] = $submittedUsername;
+        header('Location: master_control_center.php');
+        exit;
+    }
+
+    $loginError = 'Invalid username or password.';
+}
+
+$isAdminLoggedIn = !empty($_SESSION['mastercrm_admin_logged_in']);
+
+if (!$isAdminLoggedIn):
+?>
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#f4f5f7]">
+<head>
+    <meta charset="UTF-8">
+    <title>Login | DigiChefs</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(99,102,241,0.12), transparent 24%),
+                radial-gradient(circle at right, rgba(45,212,191,0.10), transparent 20%),
+                #f4f5f7;
+        }
+
+        .heading-font {
+            font-family: 'Outfit', sans-serif;
+        }
+    </style>
+</head>
+<body class="flex min-h-screen items-center justify-center px-4">
+    <div class="w-full max-w-md rounded-[28px] border border-slate-200/70 bg-white p-8 shadow-[0_24px_60px_-18px_rgba(15,23,42,0.14)]">
+        <div class="mb-8 text-center">
+            <img src="2019_dc-logo_low.png" alt="DigiChefs" class="mx-auto h-12 w-auto object-contain">
+            <h1 class="heading-font mt-5 text-3xl font-bold tracking-tight text-slate-900">Admin Login</h1>
+            <p class="mt-2 text-sm text-slate-400">Sign in to access the Master Control Center.</p>
+        </div>
+
+        <?php if ($loginError !== ''): ?>
+            <div class="mb-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                <?= h($loginError) ?>
+            </div>
+        <?php endif; ?>
+
+        <form method="post" class="space-y-4">
+            <input type="hidden" name="auth_action" value="admin_login">
+            <label class="block text-sm font-bold text-slate-600">
+                Username
+                <input type="text" name="admin_username" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300 focus:bg-white" placeholder="Enter username" required>
+            </label>
+            <label class="block text-sm font-bold text-slate-600">
+                Password
+                <input type="password" name="admin_password" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-300 focus:bg-white" placeholder="Enter password" required>
+            </label>
+            <button type="submit" class="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700">
+                Login
+            </button>
+        </form>
+    </div>
+</body>
+</html>
+<?php
+exit;
+endif;
 
 $from = trim($_GET['from'] ?? date('Y-m-01'));
 $to = trim($_GET['to'] ?? date('Y-m-d'));
@@ -416,6 +505,9 @@ $headerLabel = $selectedToolName !== '' ? $selectedToolName . ' • ' . $rangeLa
                     <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
                     Live Data
                 </div>
+                <a href="?logout=1" class="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition-soft hover:text-slate-900 sm:inline-flex">
+                    Logout
+                </a>
                 <div class="hidden h-6 w-px bg-slate-200 sm:block"></div>
                 <div class="flex items-center gap-3">
                     <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-extrabold text-white shadow-md shadow-indigo-500/20">
